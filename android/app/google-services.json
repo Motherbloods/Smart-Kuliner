@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "875861831208",
+    "project_id": "smartkulinner",
+    "storage_bucket": "smartkulinner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:875861831208:android:efcdbe9ac9e319cc128f1d",
+        "android_client_info": {
+          "package_name": "com.example.smart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBOyFVQIitPnR927Pj7aIJvuzWSZ7RiXus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
