@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
-import 'screens/login_screen.dart';
-import 'screens/home_screen.dart'; // You'll create this later
+import 'screens/auth/login_screen.dart';
+import 'screens/navbar/home_screen.dart'; // You'll create this later
 import 'package:firebase_auth/firebase_auth.dart';
 
 void main() async {
