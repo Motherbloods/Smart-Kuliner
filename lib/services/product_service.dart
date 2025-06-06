@@ -1,11 +1,26 @@
+// services/product_service.dart - Updated version
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/product.dart';
-import 'cloudinary_service.dart'; // Import Cloudinary service
+import 'cloudinary_service.dart';
 
 class ProductService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final CloudinaryService _cloudinaryService = CloudinaryService();
+
+  // Get all active products (untuk halaman beranda)
+  Stream<List<ProductModel>> getAllActiveProducts() {
+    return _firestore
+        .collection('products')
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ProductModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
 
   // Get all products for a specific seller
   Stream<List<ProductModel>> getSellerProducts(String sellerId) {
@@ -13,6 +28,36 @@ class ProductService {
         .collection('products')
         .where('sellerId', isEqualTo: sellerId)
         .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ProductModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
+
+  // Get products by category
+  Stream<List<ProductModel>> getProductsByCategory(String category) {
+    return _firestore
+        .collection('products')
+        .where('category', isEqualTo: category)
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ProductModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
+
+  // Get popular products (berdasarkan jumlah terjual)
+  Stream<List<ProductModel>> getPopularProducts({int limit = 10}) {
+    return _firestore
+        .collection('products')
+        .where('isActive', isEqualTo: true)
+        .orderBy('sold', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
@@ -100,7 +145,7 @@ class ProductService {
     }
   }
 
-  // Upload images to Cloudinary (mengganti Firebase Storage)
+  // Upload images to Cloudinary
   Future<List<String>> uploadProductImages(
     List<XFile> imageFiles,
     String sellerId,
@@ -120,6 +165,32 @@ class ProductService {
     } catch (e) {
       print('❌ Error uploading images: $e');
       throw 'Gagal mengupload gambar: $e';
+    }
+  }
+
+  // Search products
+  Future<List<ProductModel>> searchProducts(String query) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('products')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      List<ProductModel> products = snapshot.docs.map((doc) {
+        return ProductModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
+
+      // Filter by name, description, or restaurant
+      return products
+          .where(
+            (product) =>
+                product.name.toLowerCase().contains(query.toLowerCase()) ||
+                product.description.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
+    } catch (e) {
+      print('❌ Error searching products: $e');
+      return [];
     }
   }
 
@@ -160,61 +231,16 @@ class ProductService {
     );
   }
 
-  // Get product categories (you can customize this)
+  // Get product categories
   List<String> getProductCategories() {
     return [
-      'Elektronik',
-      'Fashion',
-      'Makanan & Minuman',
-      'Kesehatan & Kecantikan',
-      'Rumah & Taman',
-      'Olahraga',
-      'Buku & Alat Tulis',
-      'Mainan & Hobi',
-      'Otomotif',
+      'Makanan Utama',
+      'Cemilan',
+      'Minuman',
+      'Makanan Sehat',
+      'Dessert',
       'Lainnya',
     ];
-  }
-
-  // Search products (for future use)
-  Future<List<ProductModel>> searchProducts(String query) async {
-    try {
-      QuerySnapshot snapshot = await _firestore
-          .collection('products')
-          .where('isActive', isEqualTo: true)
-          .get();
-
-      List<ProductModel> products = snapshot.docs.map((doc) {
-        return ProductModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-      }).toList();
-
-      // Filter by name (Firestore doesn't support case-insensitive search)
-      return products
-          .where(
-            (product) =>
-                product.name.toLowerCase().contains(query.toLowerCase()) ||
-                product.description.toLowerCase().contains(query.toLowerCase()),
-          )
-          .toList();
-    } catch (e) {
-      print('❌ Error searching products: $e');
-      return [];
-    }
-  }
-
-  // Get products by category
-  Stream<List<ProductModel>> getProductsByCategory(String category) {
-    return _firestore
-        .collection('products')
-        .where('category', isEqualTo: category)
-        .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return ProductModel.fromMap(doc.data(), doc.id);
-          }).toList();
-        });
   }
 
   // Toggle product active status
@@ -230,5 +256,84 @@ class ProductService {
       print('❌ Error updating product status: $e');
       throw 'Gagal memperbarui status produk: $e';
     }
+  }
+
+  // Update product rating (dipanggil setelah ada review)
+  Future<void> updateProductRating(String productId, double newRating) async {
+    try {
+      await _firestore.collection('products').doc(productId).update({
+        'rating': newRating,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      print('✅ Product rating updated successfully');
+    } catch (e) {
+      print('❌ Error updating product rating: $e');
+      throw 'Gagal memperbarui rating produk: $e';
+    }
+  }
+
+  // Update product sold count (dipanggil setelah ada transaksi)
+  Future<void> updateProductSoldCount(
+    String productId,
+    int additionalSold,
+  ) async {
+    try {
+      DocumentSnapshot doc = await _firestore
+          .collection('products')
+          .doc(productId)
+          .get();
+
+      if (doc.exists) {
+        ProductModel product = ProductModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
+
+        await _firestore.collection('products').doc(productId).update({
+          'sold': product.sold + additionalSold,
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
+
+        print('✅ Product sold count updated successfully');
+      }
+    } catch (e) {
+      print('❌ Error updating product sold count: $e');
+      throw 'Gagal memperbarui jumlah terjual: $e';
+    }
+  }
+
+  // Get products by restaurant/seller
+  Stream<List<ProductModel>> getProductsByRestaurant(String restaurant) {
+    return _firestore
+        .collection('products')
+        .where('restaurant', isEqualTo: restaurant)
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ProductModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
+
+  // Get products with price range filter
+  Stream<List<ProductModel>> getProductsByPriceRange(
+    double minPrice,
+    double maxPrice,
+  ) {
+    return _firestore
+        .collection('products')
+        .where('isActive', isEqualTo: true)
+        .where('price', isGreaterThanOrEqualTo: minPrice)
+        .where('price', isLessThanOrEqualTo: maxPrice)
+        .orderBy('price')
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ProductModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
   }
 }

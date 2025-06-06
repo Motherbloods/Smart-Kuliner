@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:smart/models/product.dart';
+import 'package:smart/services/product_service.dart';
 import 'package:smart/widgets/product_card.dart';
-import '../../dummy/produk.dart';
 
 class SearchResultsScreen extends StatefulWidget {
   final String query;
@@ -12,11 +13,29 @@ class SearchResultsScreen extends StatefulWidget {
 }
 
 class _SearchResultsScreenState extends State<SearchResultsScreen> {
-  final List<Map<String, dynamic>> _products = produk;
-  final List<String> _categories = categories;
+  final ProductService _productService = ProductService();
+
+  // Data produk dari Firebase
+  List<ProductModel> _allProducts = [];
+
+  // Loading dan error states
+  bool _isLoading = true;
+  String? _error;
+
+  // Filter dan sorting options
+  final List<String> _categories = [
+    'Semua',
+    'Makanan Utama',
+    'Cemilan',
+    'Minuman',
+    'Makanan Sehat',
+    'Dessert',
+    'Lainnya',
+  ];
+
   String _selectedCategory = 'Semua';
   double _minPrice = 0;
-  double _maxPrice = 50000;
+  double _maxPrice = 100000; // Default max price
   double _minRating = 0;
   bool _showFilters = false;
   String _sortBy =
@@ -32,41 +51,71 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   void initState() {
     super.initState();
-    // Set max price berdasarkan produk termahal
-    _maxPrice = _products
-        .map((p) => p['price'].toDouble())
-        .reduce((a, b) => a > b ? a : b);
+    _loadProducts();
     print("INIT STATE QUERY: ${widget.query}");
   }
 
-  List<Map<String, dynamic>> get _filteredProducts {
-    print("widget.query ${widget.query}");
-    var filtered = _products.where((product) {
+  void _loadProducts() {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    // Listen to all active products from Firebase
+    _productService.getAllActiveProducts().listen(
+      (products) {
+        if (mounted) {
+          setState(() {
+            _allProducts = products;
+            _isLoading = false;
+            _error = null;
+
+            // Update max price berdasarkan produk termahal
+            if (products.isNotEmpty) {
+              _maxPrice = products
+                  .map((p) => p.price)
+                  .reduce((a, b) => a > b ? a : b);
+            }
+          });
+          print(
+            '✅ Loaded ${products.length} products from Firebase for search',
+          );
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _error = 'Gagal memuat produk: $error';
+          });
+          print('❌ Error loading products for search: $error');
+        }
+      },
+    );
+  }
+
+  List<ProductModel> get _filteredProducts {
+    print("Filtering products with query: ${widget.query}");
+
+    var filtered = _allProducts.where((product) {
       // Search filter
       final matchesSearch =
           widget.query.isEmpty ||
-          product['name'].toString().toLowerCase().contains(
-            widget.query.toLowerCase(),
-          ) ||
-          product['description'].toString().toLowerCase().contains(
-            widget.query.toLowerCase(),
-          ) ||
-          product['restaurant'].toString().toLowerCase().contains(
+          product.name.toLowerCase().contains(widget.query.toLowerCase()) ||
+          product.description.toLowerCase().contains(
             widget.query.toLowerCase(),
           );
 
       // Category filter
       final matchesCategory =
-          _selectedCategory == 'Semua' ||
-          product['category'] == _selectedCategory;
+          _selectedCategory == 'Semua' || product.category == _selectedCategory;
 
       // Price filter
-      final price = product['price'].toDouble();
-      final matchesPrice = price >= _minPrice && price <= _maxPrice;
+      final matchesPrice =
+          product.price >= _minPrice && product.price <= _maxPrice;
 
       // Rating filter
-      final rating = product['rating'].toDouble();
-      final matchesRating = rating >= _minRating;
+      final matchesRating = product.rating >= _minRating;
 
       return matchesSearch && matchesCategory && matchesPrice && matchesRating;
     }).toList();
@@ -74,15 +123,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     // Sort results
     switch (_sortBy) {
       case 'Harga Terendah':
-        filtered.sort((a, b) => a['price'].compareTo(b['price']));
+        filtered.sort((a, b) => a.price.compareTo(b.price));
         break;
       case 'Harga Tertinggi':
-        filtered.sort((a, b) => b['price'].compareTo(a['price']));
+        filtered.sort((a, b) => b.price.compareTo(a.price));
         break;
       case 'Rating Tertinggi':
-        filtered.sort((a, b) => b['rating'].compareTo(a['rating']));
+        filtered.sort((a, b) => b.rating.compareTo(a.rating));
         break;
       default: // Terbaru
+        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
     }
 
@@ -93,17 +143,26 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     setState(() {
       _selectedCategory = 'Semua';
       _minPrice = 0;
-      _maxPrice = _products
-          .map((p) => p['price'].toDouble())
-          .reduce((a, b) => a > b ? a : b);
+      if (_allProducts.isNotEmpty) {
+        _maxPrice = _allProducts
+            .map((p) => p.price)
+            .reduce((a, b) => a > b ? a : b);
+      } else {
+        _maxPrice = 100000;
+      }
       _minRating = 0;
       _sortBy = 'Terbaru';
     });
   }
 
+  void _refreshProducts() {
+    _loadProducts();
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredProducts = _filteredProducts;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -116,16 +175,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Hasil Pencarian',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.black87,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
-              '"${widget.query}" - ${filteredProducts.length} produk',
+              '"${widget.query}" - ${_isLoading ? '...' : '${filteredProducts.length} produk'}',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 12,
@@ -158,53 +217,112 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           ),
 
           // Sort and Results Count
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: Colors.white,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${filteredProducts.length} produk ditemukan',
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+          if (!_isLoading)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${filteredProducts.length} produk ditemukan',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: _showSortOptions,
-                  child: Row(
-                    children: [
-                      Icon(Icons.sort, size: 18, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        _sortBy,
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                  GestureDetector(
+                    onTap: _showSortOptions,
+                    child: Row(
+                      children: [
+                        Icon(Icons.sort, size: 18, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          _sortBy,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
           // Results
-          Expanded(
-            child: filteredProducts.isEmpty
-                ? _buildEmptyState()
-                : _buildProductGrid(filteredProducts),
-          ),
+          Expanded(child: _buildMainContent(filteredProducts)),
         ],
       ),
     );
   }
 
+  Widget _buildMainContent(List<ProductModel> filteredProducts) {
+    // Loading State
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: Color(0xFFFF6B35)),
+            SizedBox(height: 16),
+            Text(
+              'Mencari produk...',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Error State
+    if (_error != null) {
+      return Container(
+        margin: const EdgeInsets.all(16),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, color: Colors.red.shade400, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                _error!,
+                style: TextStyle(color: Colors.red.shade700),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _refreshProducts,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B35),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Empty State
+    if (filteredProducts.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    // Products Grid
+    return _buildProductGrid(filteredProducts);
+  }
+
   Widget _buildFiltersSection() {
+    // Hitung max price dari data yang tersedia
+    final maxPriceAvailable = _allProducts.isNotEmpty
+        ? _allProducts.map((p) => p.price).reduce((a, b) => a > b ? a : b)
+        : 100000.0;
+
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(16),
@@ -288,9 +406,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           RangeSlider(
             values: RangeValues(_minPrice, _maxPrice),
             min: 0,
-            max: _products
-                .map((p) => p['price'].toDouble())
-                .reduce((a, b) => a > b ? a : b),
+            max: maxPriceAvailable,
             divisions: 10,
             activeColor: const Color(0xFFFF6B35),
             labels: RangeLabels(
@@ -382,21 +498,26 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     );
   }
 
-  Widget _buildProductGrid(List<Map<String, dynamic>> products) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: GridView.builder(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 0.75,
+  Widget _buildProductGrid(List<ProductModel> products) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        _refreshProducts();
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.75,
+          ),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final product = products[index];
+            return ProductCard(product: product);
+          },
         ),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return ProductCard(product: product);
-        },
       ),
     );
   }

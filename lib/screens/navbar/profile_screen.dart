@@ -269,6 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           builder: (context) =>
                                               SellerProductsScreen(
                                                 sellerId: _userData!.uid,
+                                                nameToko: _userData!.namaToko!,
                                               ),
                                         ),
                                       );
@@ -344,6 +345,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             MaterialPageRoute(
                               builder: (context) => SellerProductsScreen(
                                 sellerId: _userData!.uid,
+                                nameToko: _userData!.namaToko!,
                               ),
                             ),
                           );
@@ -365,33 +367,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
 
-                    ActionButton(
-                      icon: Icons.settings,
-                      title: 'Pengaturan',
-                      subtitle: 'Kelola pengaturan aplikasi',
-                      onTap: () {
-                        // TODO: Navigate to settings screen
-                        SnackbarHelper.showWarningSnackbar(
-                          context,
-                          'Fitur pengaturan akan segera hadir',
-                        );
-                      },
-                    ),
+                    // ActionButton(
+                    //   icon: Icons.settings,
+                    //   title: 'Pengaturan',
+                    //   subtitle: 'Kelola pengaturan aplikasi',
+                    //   onTap: () {
+                    //     // TODO: Navigate to settings screen
+                    //     SnackbarHelper.showWarningSnackbar(
+                    //       context,
+                    //       'Fitur pengaturan akan segera hadir',
+                    //     );
+                    //   },
+                    // ),
 
-                    ActionButton(
-                      icon: Icons.help_outline,
-                      title: 'Bantuan',
-                      subtitle: 'Dapatkan bantuan dan dukungan',
-                      onTap: () {
-                        // TODO: Navigate to help screen
-                        SnackbarHelper.showWarningSnackbar(
-                          context,
-                          'Fitur bantuan akan segera hadir',
-                        );
-                      },
-                    ),
+                    // ActionButton(
+                    //   icon: Icons.help_outline,
+                    //   title: 'Bantuan',
+                    //   subtitle: 'Dapatkan bantuan dan dukungan',
+                    //   onTap: () {
+                    //     // TODO: Navigate to help screen
+                    //     SnackbarHelper.showWarningSnackbar(
+                    //       context,
+                    //       'Fitur bantuan akan segera hadir',
+                    //     );
+                    //   },
+                    // ),
 
-                    const SizedBox(height: 16),
+                    // const SizedBox(height: 16),
 
                     // Logout Button
                     Container(
@@ -438,8 +440,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        AddProductScreen(sellerId: _userData!.uid),
+                    builder: (context) => AddProductScreen(
+                      sellerId: _userData!.uid,
+                      nameToko: _userData!.namaToko!,
+                    ),
                   ),
                 );
               },

@@ -9,8 +9,13 @@ import '../../models/product.dart';
 
 class AddProductScreen extends StatefulWidget {
   final String sellerId;
+  final String nameToko;
 
-  const AddProductScreen({Key? key, required this.sellerId}) : super(key: key);
+  const AddProductScreen({
+    Key? key,
+    required this.sellerId,
+    required this.nameToko,
+  }) : super(key: key);
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -18,7 +23,7 @@ class AddProductScreen extends StatefulWidget {
 
 class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
+  final _nameProdukController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
@@ -41,7 +46,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _nameProdukController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
     _stockController.dispose();
@@ -106,10 +111,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       // Create product
       ProductModel newProduct = ProductModel(
-        id: '', // Will be set by Firestore
+        id: '',
         sellerId: widget.sellerId,
-        name: _nameController.text.trim(),
+        name: _nameProdukController.text.trim(),
         description: _descriptionController.text.trim(),
+        nameToko: widget.nameToko,
         price: double.parse(_priceController.text),
         category: _selectedCategory,
         imageUrls: imageUrls,
@@ -322,7 +328,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         children: [
                           // Product Name
                           TextFormField(
-                            controller: _nameController,
+                            controller: _nameProdukController,
                             decoration: InputDecoration(
                               labelText: 'Nama Produk *',
                               hintText: 'Masukkan nama produk',

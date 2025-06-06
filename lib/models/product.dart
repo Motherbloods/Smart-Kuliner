@@ -1,11 +1,14 @@
 class ProductModel {
   final String id;
-  final String sellerId;
   final String name;
   final String description;
   final double price;
   final String category;
   final List<String> imageUrls;
+  final double rating;
+  final String sellerId;
+  final String nameToko;
+  final int sold;
   final int stock;
   final bool isActive;
   final DateTime createdAt;
@@ -13,12 +16,15 @@ class ProductModel {
 
   ProductModel({
     required this.id,
-    required this.sellerId,
     required this.name,
     required this.description,
     required this.price,
     required this.category,
     required this.imageUrls,
+    required this.nameToko,
+    this.rating = 0,
+    required this.sellerId,
+    this.sold = 0,
     required this.stock,
     this.isActive = true,
     required this.createdAt,
@@ -31,8 +37,11 @@ class ProductModel {
       'sellerId': sellerId,
       'name': name,
       'description': description,
+      'nameToko': nameToko,
       'price': price,
       'category': category,
+      'rating': rating,
+      'sold': sold,
       'imageUrls': imageUrls,
       'stock': stock,
       'isActive': isActive,
@@ -47,6 +56,9 @@ class ProductModel {
       id: id,
       sellerId: map['sellerId'] ?? '',
       name: map['name'] ?? '',
+      rating: (map['rating'] ?? 0).toDouble(),
+      sold: (map['sold'] ?? 0).toInt(),
+      nameToko: map['nameToko'] ?? '',
       description: map['description'] ?? '',
       price: (map['price'] ?? 0).toDouble(),
       category: map['category'] ?? '',
@@ -64,8 +76,11 @@ class ProductModel {
     String? sellerId,
     String? name,
     String? description,
+    String? nameToko,
     double? price,
     String? category,
+    double? rating,
+    int? sold,
     List<String>? imageUrls,
     int? stock,
     bool? isActive,
@@ -77,8 +92,11 @@ class ProductModel {
       sellerId: sellerId ?? this.sellerId,
       name: name ?? this.name,
       description: description ?? this.description,
+      nameToko: nameToko ?? this.nameToko,
       price: price ?? this.price,
       category: category ?? this.category,
+      rating: rating ?? this.rating,
+      sold: sold ?? this.sold,
       imageUrls: imageUrls ?? this.imageUrls,
       stock: stock ?? this.stock,
       isActive: isActive ?? this.isActive,

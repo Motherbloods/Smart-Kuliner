@@ -7,9 +7,13 @@ import 'edit_product_screen.dart';
 
 class SellerProductsScreen extends StatefulWidget {
   final String sellerId;
+  final String nameToko;
 
-  const SellerProductsScreen({Key? key, required this.sellerId})
-    : super(key: key);
+  const SellerProductsScreen({
+    Key? key,
+    required this.sellerId,
+    required this.nameToko,
+  }) : super(key: key);
 
   @override
   State<SellerProductsScreen> createState() => _SellerProductsScreenState();
@@ -204,6 +208,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => AddProductScreen(
                                     sellerId: widget.sellerId,
+                                    nameToko: widget.nameToko,
                                   ),
                                 ),
                               );
@@ -246,7 +251,10 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AddProductScreen(sellerId: widget.sellerId),
+              builder: (context) => AddProductScreen(
+                sellerId: widget.sellerId,
+                nameToko: widget.nameToko,
+              ),
             ),
           );
         },
