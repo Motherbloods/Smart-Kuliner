@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../widgets/custom_widgets.dart';
+import 'package:smart/utils/snackbar_helper.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/custom_widgets.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -48,22 +49,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (success && mounted) {
-        // Success is handled by AuthWrapper automatically
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login berhasil!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
+        SnackbarHelper.showSuccessSnackbar(
+          context,
+          'Login berhasil!',
+          duration: 2,
         );
       } else if (mounted && authProvider.errorMessage != null) {
-        // Show error in snackbar as well
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage!),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        SnackbarHelper.showErrorSnackbar(
+          context,
+          authProvider.errorMessage!,
+          duration: 3,
         );
       }
     }

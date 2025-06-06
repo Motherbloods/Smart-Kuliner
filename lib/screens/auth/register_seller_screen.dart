@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smart/screens/register_seller_screen.dart';
-import '../providers/auth_provider.dart';
-import '../widgets/custom_widgets.dart';
+import 'package:smart/screens/auth/register_screen.dart';
+import 'package:smart/utils/snackbar_helper.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/custom_widgets.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+class RegisterScreenSeller extends StatefulWidget {
+  const RegisterScreenSeller({Key? key}) : super(key: key);
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterScreenSeller> createState() => _RegisterScreenSellerState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _namaTokoController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -21,6 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _namaTokoController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -30,29 +33,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<MyAuthProvider>(context, listen: false);
-      print('🟡 Tombol Register User ditekan');
+      print('🟡 Tombol Register Seller ditekan');
 
-      final success = await authProvider.registerUser(
+      final success = await authProvider.registerSeller(
         _emailController.text,
         _passwordController.text,
         _nameController.text,
+        _namaTokoController.text,
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registrasi berhasil! Selamat datang sebagai User!'),
-            backgroundColor: Colors.green,
-          ),
+        SnackbarHelper.showSuccessSnackbar(
+          context,
+          'Registrasi berhasil! Selamat datang sebagai Penjual!',
         );
         Navigator.pop(context);
       } else if (mounted && authProvider.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage!),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarHelper.showErrorSnackbar(context, authProvider.errorMessage!);
       }
     }
   }
@@ -66,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF2D3748)),
         title: const Text(
-          'Daftar sebagai User',
+          'Daftar sebagai Penjual',
           style: TextStyle(color: Color(0xFF2D3748)),
         ),
       ),
@@ -82,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     // Header
                     const Text(
-                      'Buat Akun User Baru',
+                      'Buat Akun Penjual Baru',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -91,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Bergabunglah dengan SmartKuliner untuk menemukan kuliner terbaik',
+                      'Bergabunglah dengan SmartKuliner untuk menjual produk kuliner Anda',
                       style: TextStyle(fontSize: 16, color: Color(0xFF718096)),
                     ),
 
@@ -118,6 +115,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         }
                         if (value.length < 2) {
                           return 'Nama minimal 2 karakter';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Nama Toko Field
+                    CustomTextField(
+                      label: 'Nama Toko',
+                      hint: 'Masukkan nama toko Anda',
+                      controller: _namaTokoController,
+                      prefixIcon: Icons.store_outlined,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Nama toko tidak boleh kosong';
+                        }
+                        if (value.length < 2) {
+                          return 'Nama toko minimal 2 karakter';
                         }
                         return null;
                       },
@@ -189,19 +205,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     // Register Button
                     CustomButton(
-                      text: 'Daftar sebagai User',
+                      text: 'Daftar sebagai Penjual',
                       onPressed: _handleRegister,
                       isLoading: authProvider.isLoading,
                     ),
 
                     const SizedBox(height: 24),
 
-                    // Seller Link
+                    // User Link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          'Ingin daftar sebagai Penjual? ',
+                          'Ingin daftar sebagai User? ',
                           style: TextStyle(
                             color: Color(0xFF718096),
                             fontSize: 14,
@@ -212,8 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const RegisterScreenSeller(),
+                                builder: (context) => const RegisterScreen(),
                               ),
                             );
                           },

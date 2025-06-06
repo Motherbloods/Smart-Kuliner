@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:smart/screens/register_screen.dart';
-import '../providers/auth_provider.dart';
-import '../widgets/custom_widgets.dart';
+import 'package:smart/screens/auth/register_seller_screen.dart';
+import 'package:smart/utils/snackbar_helper.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/custom_widgets.dart';
 
-class RegisterScreenSeller extends StatefulWidget {
-  const RegisterScreenSeller({Key? key}) : super(key: key);
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({Key? key}) : super(key: key);
 
   @override
-  State<RegisterScreenSeller> createState() => _RegisterScreenSellerState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _namaTokoController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -22,7 +22,6 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
   @override
   void dispose() {
     _nameController.dispose();
-    _namaTokoController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -32,32 +31,22 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<MyAuthProvider>(context, listen: false);
-      print('🟡 Tombol Register Seller ditekan');
+      print('🟡 Tombol Register User ditekan');
 
-      final success = await authProvider.registerSeller(
+      final success = await authProvider.registerUser(
         _emailController.text,
         _passwordController.text,
         _nameController.text,
-        _namaTokoController.text,
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Registrasi berhasil! Selamat datang sebagai Penjual!',
-            ),
-            backgroundColor: Colors.green,
-          ),
+        SnackbarHelper.showSuccessSnackbar(
+          context,
+          'Registrasi berhasil! Selamat datang sebagai User!',
         );
         Navigator.pop(context);
       } else if (mounted && authProvider.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(authProvider.errorMessage!),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackbarHelper.showErrorSnackbar(context, authProvider.errorMessage!);
       }
     }
   }
@@ -71,7 +60,7 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF2D3748)),
         title: const Text(
-          'Daftar sebagai Penjual',
+          'Daftar sebagai User',
           style: TextStyle(color: Color(0xFF2D3748)),
         ),
       ),
@@ -87,7 +76,7 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
                   children: [
                     // Header
                     const Text(
-                      'Buat Akun Penjual Baru',
+                      'Buat Akun User Baru',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -96,7 +85,7 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Bergabunglah dengan SmartKuliner untuk menjual produk kuliner Anda',
+                      'Bergabunglah dengan SmartKuliner untuk menemukan kuliner terbaik',
                       style: TextStyle(fontSize: 16, color: Color(0xFF718096)),
                     ),
 
@@ -123,25 +112,6 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
                         }
                         if (value.length < 2) {
                           return 'Nama minimal 2 karakter';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Nama Toko Field
-                    CustomTextField(
-                      label: 'Nama Toko',
-                      hint: 'Masukkan nama toko Anda',
-                      controller: _namaTokoController,
-                      prefixIcon: Icons.store_outlined,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Nama toko tidak boleh kosong';
-                        }
-                        if (value.length < 2) {
-                          return 'Nama toko minimal 2 karakter';
                         }
                         return null;
                       },
@@ -213,19 +183,19 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
 
                     // Register Button
                     CustomButton(
-                      text: 'Daftar sebagai Penjual',
+                      text: 'Daftar sebagai User',
                       onPressed: _handleRegister,
                       isLoading: authProvider.isLoading,
                     ),
 
                     const SizedBox(height: 24),
 
-                    // User Link
+                    // Seller Link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          'Ingin daftar sebagai User? ',
+                          'Ingin daftar sebagai Penjual? ',
                           style: TextStyle(
                             color: Color(0xFF718096),
                             fontSize: 14,
@@ -236,7 +206,8 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
+                                builder: (context) =>
+                                    const RegisterScreenSeller(),
                               ),
                             );
                           },
