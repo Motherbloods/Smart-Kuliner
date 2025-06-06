@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart/widgets/custom_search_bar.dart';
 import '../../providers/auth_provider.dart';
-import '../../utils/searchable.dart';
 
 import 'beranda_screen.dart';
 import 'konten_screen.dart';

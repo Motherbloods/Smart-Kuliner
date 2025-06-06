@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:smart/utils/capitalize_text.dart';
 import 'package:smart/utils/image_picker_service.dart';
 import 'package:smart/utils/snackbar_helper.dart';
 import 'package:smart/widgets/section_card.dart';
@@ -329,6 +330,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           // Product Name
                           TextFormField(
                             controller: _nameProdukController,
+                            onChanged: (value) {
+                              final formatted = capitalizeEachWord(value);
+                              if (value != formatted) {
+                                _nameProdukController.value = TextEditingValue(
+                                  text: formatted,
+                                  selection: TextSelection.collapsed(
+                                    offset: formatted.length,
+                                  ),
+                                );
+                              }
+                            },
                             decoration: InputDecoration(
                               labelText: 'Nama Produk *',
                               hintText: 'Masukkan nama produk',
@@ -389,6 +401,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           TextFormField(
                             controller: _descriptionController,
                             maxLines: 4,
+                            onChanged: (value) {
+                              final formatted = capitalizeEachWord(value);
+                              if (value != formatted) {
+                                _descriptionController.value = TextEditingValue(
+                                  text: formatted,
+                                  selection: TextSelection.collapsed(
+                                    offset: formatted.length,
+                                  ),
+                                );
+                              }
+                            },
                             decoration: InputDecoration(
                               labelText: 'Deskripsi Produk *',
                               hintText:
