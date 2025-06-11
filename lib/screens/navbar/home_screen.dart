@@ -53,53 +53,76 @@ class _HomeScreenState extends State<HomeScreen> {
   void _initializeScreensAndNavBar() {
     final authProvider = Provider.of<MyAuthProvider>(context, listen: false);
     final isSeller = authProvider.currentUser?.seller ?? false;
+    _screens = [_berandaScreen, _kontenScreen, _edukasiScreen, _profileScreen];
 
-    if (isSeller) {
-      // Seller: Tampilkan semua 4 screen - menggunakan instance yang sudah ada
-      _screens = [
-        _berandaScreen,
-        _kontenScreen,
-        _edukasiScreen,
-        _profileScreen,
-      ];
-      _navBarItems = const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Beranda',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.article_outlined),
-          activeIcon: Icon(Icons.article),
-          label: 'Konten',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.school_outlined),
-          activeIcon: Icon(Icons.school),
-          label: 'Edukasi',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profil',
-        ),
-      ];
-    } else {
-      // User biasa: Hanya Beranda dan Profil - menggunakan instance yang sudah ada
-      _screens = [_berandaScreen, _profileScreen];
-      _navBarItems = const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Beranda',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
-          label: 'Profil',
-        ),
-      ];
-    }
+    _navBarItems = const [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home),
+        label: 'Beranda',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.article_outlined),
+        activeIcon: Icon(Icons.article),
+        label: 'Konten',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.school_outlined),
+        activeIcon: Icon(Icons.school),
+        label: 'Edukasi',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.person_outline),
+        activeIcon: Icon(Icons.person),
+        label: 'Profil',
+      ),
+    ];
+    // if (isSeller) {
+    //   // Seller: Tampilkan semua 4 screen - menggunakan instance yang sudah ada
+    //   _screens = [
+    //     _berandaScreen,
+    //     _kontenScreen,
+    //     _edukasiScreen,
+    //     _profileScreen,
+    //   ];
+    //   _navBarItems = const [
+    //     BottomNavigationBarItem(
+    //       icon: Icon(Icons.home_outlined),
+    //       activeIcon: Icon(Icons.home),
+    //       label: 'Beranda',
+    //     ),
+    //     BottomNavigationBarItem(
+    //       icon: Icon(Icons.article_outlined),
+    //       activeIcon: Icon(Icons.article),
+    //       label: 'Konten',
+    //     ),
+    //     BottomNavigationBarItem(
+    //       icon: Icon(Icons.school_outlined),
+    //       activeIcon: Icon(Icons.school),
+    //       label: 'Edukasi',
+    //     ),
+    //     BottomNavigationBarItem(
+    //       icon: Icon(Icons.person_outline),
+    //       activeIcon: Icon(Icons.person),
+    //       label: 'Profil',
+    //     ),
+    //   ];
+    // } else {
+    //   // User biasa: Hanya Beranda dan Profil - menggunakan instance yang sudah ada
+    //   _screens = [_berandaScreen, _profileScreen];
+    //   _navBarItems = const [
+    //     BottomNavigationBarItem(
+    //       icon: Icon(Icons.home_outlined),
+    //       activeIcon: Icon(Icons.home),
+    //       label: 'Beranda',
+    //     ),
+    //     BottomNavigationBarItem(
+    //       icon: Icon(Icons.person_outline),
+    //       activeIcon: Icon(Icons.person),
+    //       label: 'Profil',
+    //     ),
+    //   ];
+    // }
   }
 
   void _onItemTapped(int index) {
