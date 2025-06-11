@@ -126,16 +126,30 @@ class MyAuthProvider with ChangeNotifier {
     }
   }
 
+  void updateUserData(UserModel updatedUser) {
+    _currentUser = updatedUser;
+    notifyListeners();
+  }
+
   // Sign out
   Future<void> signOut() async {
     try {
+      print('[DEBUG] signOut() called');
       _setLoading(true);
+      print('[DEBUG] Loading set to true');
+
       await _authService.signOut();
+      print('[DEBUG] AuthService.signOut() completed');
+
       _currentUser = null;
-    } catch (e) {
+      print('[DEBUG] Current user set to null');
+    } catch (e, stackTrace) {
+      print('[ERROR] signOut() failed: $e');
+      print('[STACKTRACE] $stackTrace');
       _setError(e.toString());
     } finally {
       _setLoading(false);
+      print('[DEBUG] Loading set to false');
     }
   }
 }
