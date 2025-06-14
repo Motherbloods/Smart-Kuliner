@@ -4,9 +4,11 @@ import 'package:smart/data/dummy_education_templates.dart';
 import 'package:smart/models/edukasi.dart';
 import 'package:smart/models/user.dart';
 import 'package:smart/screens/add_video_edukasi.dart';
+import 'package:smart/screens/navbar/edit_edukasi_screen.dart';
 import 'package:smart/utils/snackbar_helper.dart';
 import 'package:smart/widgets/common_components.dart';
 import 'package:smart/widgets/content_card.dart';
+import 'package:smart/widgets/video_overlay.dart'; // Add this import
 import '../../providers/auth_provider.dart';
 import "../../models/education_template.dart";
 import "../../services/edukasi_service.dart";
@@ -22,6 +24,8 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
   bool _isLoading = false;
   String _selectedCategory = 'Semua';
   UserModel? _userData;
+  bool _showVideoOverlay = false; // Add this
+  EdukasiModel? _selectedContent; // Add this
 
   // Dummy data untuk template edukasi (untuk seller)
   final List<EducationTemplate> _educationTemplates = educationTemplates;
@@ -186,6 +190,22 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
     await _loadEducationData(); // Then load education data
   }
 
+  // Show video overlay - Updated method
+  void _showVideoPlayer(EdukasiModel content) {
+    setState(() {
+      _selectedContent = content;
+      _showVideoOverlay = true;
+    });
+  }
+
+  // Hide video overlay - New method
+  void _hideVideoPlayer() {
+    setState(() {
+      _showVideoOverlay = false;
+      _selectedContent = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<MyAuthProvider>(
@@ -193,36 +213,73 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
         final isSeller = authProvider.currentUser?.seller ?? false;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FA),
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            title: const Text(
-              'Edukasi',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            actions: isSeller
-                ? [
-                    IconButton(
-                      onPressed: _addNewEducationContent,
-                      icon: const Icon(Icons.add, color: Color(0xFFFF6B35)),
+          backgroundColor: Colors.white,
+          appBar: _showVideoOverlay
+              ? null
+              : AppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  title: const Text(
+                    'Edukasi',
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ]
-                : null,
-          ),
-          body: RefreshIndicator(
-            onRefresh: _refreshContent,
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFF6B35)),
-                  )
-                : isSeller
-                ? _buildSellerView()
-                : _buildUserView(),
+                  ),
+                  actions: isSeller
+                      ? [
+                          IconButton(
+                            onPressed: _addNewEducationContent,
+                            icon: const Icon(
+                              Icons.add,
+                              color: Color(0xFF4DA8DA),
+                            ),
+                          ),
+                        ]
+                      : null,
+                ),
+          body: Stack(
+            children: [
+              // Main content
+              RefreshIndicator(
+                onRefresh: _refreshContent,
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF4DA8DA),
+                        ),
+                      )
+                    : isSeller
+                    ? _buildSellerView()
+                    : _buildUserView(),
+              ),
+
+              // Video overlay
+              if (_showVideoOverlay && _selectedContent != null)
+                VideoOverlay(
+                  content: _selectedContent!,
+                  onClose: _hideVideoPlayer,
+                  initialLikedState: _selectedContent!.id != null
+                      ? _likedContentIds.contains(_selectedContent!.id!)
+                      : false,
+                  onViewsChanged: (newViewsCount) {
+                    if (_selectedContent!.id != null) {
+                      _handleViewsUpdate(_selectedContent!.id!, newViewsCount);
+                    }
+                  },
+                  onLikesChanged: (newLikesCount, isLiked) {
+                    if (_selectedContent!.id != null) {
+                      _handleLikesUpdate(
+                        _selectedContent!.id!,
+                        newLikesCount,
+                        isLiked,
+                      );
+                    }
+                  },
+                  currentUser: authProvider.currentUser,
+                ),
+            ],
           ),
         );
       },
@@ -331,6 +388,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
                   : false,
               onEdit: () => _editEducationContent(content),
               onDelete: () => _deleteEducationContent(content),
+              onView: () => _showVideoPlayer(content), // Updated this line
               onViewsChanged: (newViewsCount) {
                 if (content.id != null) {
                   _handleViewsUpdate(content.id!, newViewsCount);
@@ -384,7 +442,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
               initialLikedState: content.id != null
                   ? _likedContentIds.contains(content.id!)
                   : false,
-              onView: () => _viewEducationContent(content),
+              onView: () => _showVideoPlayer(content), // Updated this line
               onViewsChanged: (newViewsCount) {
                 if (content.id != null) {
                   _handleViewsUpdate(content.id!, newViewsCount);
@@ -423,18 +481,27 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Menggunakan template: ${template.title}'),
-        backgroundColor: const Color(0xFFFF6B35),
+        backgroundColor: const Color(0xFF4DA8DA),
       ),
     );
   }
 
   void _editEducationContent(EdukasiModel content) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Edit konten: ${content.title}'),
-        backgroundColor: const Color(0xFFFF6B35),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditEdukasiScreen(
+          edukasi: content,
+          sellerId: _userData!.uid,
+          namaToko: _userData!.namaToko!,
+        ),
       ),
-    );
+    ).then((result) {
+      // Refresh data jika edit berhasil
+      if (result == true) {
+        _initializeData();
+      }
+    });
   }
 
   void _deleteEducationContent(EdukasiModel content) {
@@ -510,11 +577,6 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
   }
 
   void _viewEducationContent(EdukasiModel content) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Membaca: ${content.title}'),
-        backgroundColor: const Color(0xFFFF6B35),
-      ),
-    );
+    _showVideoPlayer(content); // Use video player instead of snackbar
   }
 }
