@@ -22,6 +22,20 @@ class ProductService {
         });
   }
 
+  Stream<List<ProductModel>> getLatestProducts({int limit = 10}) {
+    return _firestore
+        .collection('products')
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ProductModel.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
+  }
+
   // Get all products for a specific seller
   Stream<List<ProductModel>> getSellerProducts(String sellerId) {
     return _firestore
