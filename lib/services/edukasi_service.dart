@@ -14,16 +14,13 @@ class EdukasiService {
   // Get edukasi categories
   List<String> getEdukasiCategories() {
     return [
-      'Bisnis',
-      'Pemasaran',
-      'Keuangan',
-      'Teknologi',
-      'Pertanian',
-      'Kuliner',
-      'Fashion',
-      'Kesehatan',
-      'Pendidikan',
-      'Lainnya',
+      'Semua',
+      'Makanan Utama',
+      'Cemilan',
+      'Minuman',
+      'Makanan Sehat',
+      'Dessert',
+      "Lainnya",
     ];
   }
 
@@ -209,6 +206,23 @@ class EdukasiService {
     }
   }
 
+  Future<List<EdukasiModel>> getLatestEdukasi({int limit = 3}) async {
+    try {
+      final QuerySnapshot snapshot = await _edukasiCollection
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+
+      return snapshot.docs
+          .map(
+            (doc) => EdukasiModel.fromJson(doc.data() as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (e) {
+      throw Exception('Gagal mengambil data edukasi terbaru: $e');
+    }
+  }
+
   /// Get edukasi by category
   Future<List<EdukasiModel>> getEdukasiByCategory(String category) async {
     try {
@@ -233,14 +247,16 @@ class EdukasiService {
     try {
       final QuerySnapshot snapshot = await _edukasiCollection
           .where('status', isEqualTo: 'Published')
-          .orderBy('createdAt', descending: true)
           .get();
-
-      return snapshot.docs
-          .map(
-            (doc) => EdukasiModel.fromJson(doc.data() as Map<String, dynamic>),
-          )
-          .toList();
+      final edukasiList =
+          snapshot.docs
+              .map(
+                (doc) =>
+                    EdukasiModel.fromJson(doc.data() as Map<String, dynamic>),
+              )
+              .toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return edukasiList;
     } catch (e) {
       throw Exception('Gagal mengambil data edukasi published: $e');
     }
@@ -249,8 +265,26 @@ class EdukasiService {
   /// Update edukasi
   Future<void> updateEdukasi(EdukasiModel edukasi) async {
     try {
-      await _edukasiCollection.doc(edukasi.uid).update(edukasi.toJson());
+      if (edukasi.id == null || edukasi.id!.isEmpty) {
+        throw Exception('ID edukasi tidak valid');
+      }
+
+      // Update document di Firestore menggunakan ID yang benar
+      await _edukasiCollection.doc(edukasi.id).update({
+        'title': edukasi.title,
+        'description': edukasi.description,
+        'category': edukasi.category,
+        'videoUrl': edukasi.videoUrl,
+        'thumbnailUrl': edukasi.imageUrl,
+        'imageUrl': edukasi.imageUrl,
+        'readTime': edukasi.readTime,
+        'status': edukasi.status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Edukasi updated successfully: ${edukasi.id}');
     } catch (e) {
+      print('❌ Error updating edukasi: $e');
       throw Exception('Gagal mengupdate konten edukasi: $e');
     }
   }
