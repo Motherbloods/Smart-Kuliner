@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart/screens/navbar/edit_profile_screen.dart';
 import 'package:smart/utils/date_utils.dart';
 import 'package:smart/utils/snackbar_helper.dart';
 import 'package:smart/widgets/action_button.dart';
@@ -29,6 +30,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadUserData();
+  }
+
+  Future<void> _navigateToEditProfile() async {
+    if (_userData == null) return;
+
+    final result = await Navigator.push<UserModel>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(userData: _userData!),
+      ),
+    );
+
+    if (result != null) {
+      // Refresh profile data setelah edit
+      await _refreshProfile();
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -78,14 +95,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFFFF6B35)),
+              child: CircularProgressIndicator(color: Color(0xFF4DA8DA)),
             )
           : RefreshIndicator(
               onRefresh: _refreshProfile,
-              color: const Color(0xFFFF6B35),
+              color: const Color(0xFF4DA8DA),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -116,7 +133,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             height: 80,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFFFF6B35), Color(0xFFFF8A65)],
+                                colors: [Color(0xFF4DA8DA), Color(0xFFFF8A65)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -208,14 +225,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         margin: const EdgeInsets.only(bottom: 24),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFFF6B35), Color(0xFFFF8A65)],
+                            colors: [Color(0xFF4DA8DA), Color(0xFFFF8A65)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFFF6B35).withOpacity(0.3),
+                              color: const Color(0xFF4DA8DA).withOpacity(0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),
@@ -358,13 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: Icons.edit,
                       title: 'Edit Profile',
                       subtitle: 'Ubah informasi profil Anda',
-                      onTap: () {
-                        // TODO: Navigate to edit profile screen
-                        SnackbarHelper.showWarningSnackbar(
-                          context,
-                          'Fitur edit profil akan segera hadir',
-                        );
-                      },
+                      onTap: _navigateToEditProfile,
                     ),
 
                     // ActionButton(
@@ -403,7 +414,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: () =>
                             showLogoutDialog(context, _performLogout),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
+                          backgroundColor: Color(0xFFE53935),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
@@ -447,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 );
               },
-              backgroundColor: const Color(0xFFFF6B35),
+              backgroundColor: const Color(0xFF4DA8DA),
               child: const Icon(Icons.add, color: Colors.white, size: 28),
             )
           : null,
