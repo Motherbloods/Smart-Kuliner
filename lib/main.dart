@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primarySwatch: Colors.orange,
-          primaryColor: const Color(0xFFFF6B35),
+          primaryColor: const Color(0xFF4DA8DA),
           visualDensity: VisualDensity.adaptivePlatformDensity,
           fontFamily: 'Poppins', // Optional: add custom font
         ),
@@ -51,7 +51,7 @@ class AuthWrapper extends StatelessWidget {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF6B35)),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4DA8DA)),
               ),
             ),
           );

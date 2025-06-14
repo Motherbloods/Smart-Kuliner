@@ -28,13 +28,13 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Produk Saya',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: const Color(0xFFFF6B35),
+        backgroundColor: const Color(0xFF4DA8DA),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -57,7 +57,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                     hintText: 'Cari produk...',
                     prefixIcon: const Icon(
                       Icons.search,
-                      color: Color(0xFFFF6B35),
+                      color: Color(0xFF4DA8DA),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -65,7 +65,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFFF6B35)),
+                      borderSide: const BorderSide(color: Color(0xFF4DA8DA)),
                     ),
                     filled: true,
                     fillColor: Colors.grey[50],
@@ -86,11 +86,11 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                             _selectedFilter = filter;
                           });
                         },
-                        selectedColor: const Color(0xFFFF6B35).withOpacity(0.2),
-                        checkmarkColor: const Color(0xFFFF6B35),
+                        selectedColor: const Color(0xFF4DA8DA).withOpacity(0.2),
+                        checkmarkColor: const Color(0xFF4DA8DA),
                         labelStyle: TextStyle(
                           color: isSelected
-                              ? const Color(0xFFFF6B35)
+                              ? const Color(0xFF4DA8DA)
                               : Colors.grey[600],
                           fontWeight: isSelected
                               ? FontWeight.w600
@@ -110,7 +110,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFFFF6B35)),
+                    child: CircularProgressIndicator(color: Color(0xFF4DA8DA)),
                   );
                 }
 
@@ -216,7 +216,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                             icon: const Icon(Icons.add),
                             label: const Text('Tambah Produk'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF6B35),
+                              backgroundColor: const Color(0xFF4DA8DA),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
@@ -258,7 +258,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
             ),
           );
         },
-        backgroundColor: const Color(0xFFFF6B35),
+        backgroundColor: const Color(0xFF4DA8DA),
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -363,7 +363,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                           value: 'edit',
                           child: Row(
                             children: [
-                              Icon(Icons.edit, color: Color(0xFFFF6B35)),
+                              Icon(Icons.edit, color: Color(0xFF4DA8DA)),
                               SizedBox(width: 8),
                               Text('Edit'),
                             ],
@@ -410,7 +410,7 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFFF6B35),
+                    color: Color(0xFF4DA8DA),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -422,14 +422,14 @@ class _SellerProductsScreenState extends State<SellerProductsScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B35).withOpacity(0.1),
+                    color: const Color(0xFF4DA8DA).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     product.category,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFFF6B35),
+                      color: Color(0xFF4DA8DA),
                       fontWeight: FontWeight.w500,
                     ),
                   ),

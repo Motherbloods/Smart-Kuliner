@@ -73,7 +73,7 @@ class CustomSearchBar extends StatelessWidget {
                 onSearch!();
               }
             },
-            child: Icon(Icons.search, color: const Color(0xFFFF6B35), size: 24),
+            child: Icon(Icons.search, color: const Color(0xFF4DA8DA), size: 24),
           ),
         ],
       ),

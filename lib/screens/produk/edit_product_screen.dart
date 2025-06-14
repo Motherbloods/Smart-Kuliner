@@ -49,13 +49,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Edit Produk',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: const Color(0xFFFF6B35),
+        backgroundColor: const Color(0xFF4DA8DA),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -158,7 +158,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _updateProduct,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6B35),
+                    backgroundColor: const Color(0xFF4DA8DA),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -287,11 +287,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add, color: Color(0xFFFF6B35)),
+                            Icon(Icons.add, color: Color(0xFF4DA8DA)),
                             Text(
                               'Tambah',
                               style: TextStyle(
-                                color: Color(0xFFFF6B35),
+                                color: Color(0xFF4DA8DA),
                                 fontSize: 12,
                               ),
                             ),
@@ -454,7 +454,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFFF6B35)),
+          borderSide: const BorderSide(color: Color(0xFF4DA8DA)),
         ),
         filled: true,
         fillColor: Colors.grey[50],
@@ -475,7 +475,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFFF6B35)),
+          borderSide: const BorderSide(color: Color(0xFF4DA8DA)),
         ),
         filled: true,
         fillColor: Colors.grey[50],

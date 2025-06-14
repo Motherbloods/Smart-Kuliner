@@ -43,10 +43,10 @@ class ActionButton extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF6B35).withOpacity(0.1),
+                    color: const Color(0xFF4DA8DA).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: const Color(0xFFFF6B35), size: 24),
+                  child: Icon(icon, color: const Color(0xFF4DA8DA), size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

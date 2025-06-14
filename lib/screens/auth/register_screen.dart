@@ -214,7 +214,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: const Text(
                             'Daftar Sekarang',
                             style: TextStyle(
-                              color: Color(0xFFFF6B35),
+                              color: Color(0xFF4DA8DA),
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),

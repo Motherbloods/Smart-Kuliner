@@ -157,13 +157,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Tambah Produk',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: const Color(0xFFFF6B35),
+        backgroundColor: const Color(0xFF4DA8DA),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -172,7 +172,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFFFF6B35)),
+                  CircularProgressIndicator(color: Color(0xFF4DA8DA)),
                   SizedBox(height: 16),
                   Text(
                     'Menyimpan produk...',
@@ -306,7 +306,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                           vertical: 12,
                                         ),
                                         side: const BorderSide(
-                                          color: Color(0xFFFF6B35),
+                                          color: Color(0xFF4DA8DA),
                                         ),
                                         foregroundColor: const Color(
                                           0xFFFF6B35,
@@ -350,7 +350,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFFF6B35),
+                                  color: Color(0xFF4DA8DA),
                                 ),
                               ),
                             ),
@@ -378,7 +378,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFFF6B35),
+                                  color: Color(0xFF4DA8DA),
                                 ),
                               ),
                             ),
@@ -422,7 +422,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
-                                  color: Color(0xFFFF6B35),
+                                  color: Color(0xFF4DA8DA),
                                 ),
                               ),
                               alignLabelWithHint: true,
@@ -463,7 +463,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Color(0xFFFF6B35),
+                                    color: Color(0xFF4DA8DA),
                                   ),
                                 ),
                               ),
@@ -496,7 +496,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                    color: Color(0xFFFF6B35),
+                                    color: Color(0xFF4DA8DA),
                                   ),
                                 ),
                               ),
@@ -524,7 +524,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       child: ElevatedButton(
                         onPressed: _saveProduct,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFF6B35),
+                          backgroundColor: const Color(0xFF4DA8DA),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(

@@ -80,7 +80,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFFF6B35), width: 2),
+              borderSide: const BorderSide(color: Color(0xFF4DA8DA), width: 2),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -121,13 +121,13 @@ class CustomButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: isOutlined
               ? Colors.transparent
-              : const Color(0xFFFF6B35),
-          foregroundColor: isOutlined ? const Color(0xFFFF6B35) : Colors.white,
+              : const Color(0xFF4DA8DA),
+          foregroundColor: isOutlined ? const Color(0xFF4DA8DA) : Colors.white,
           elevation: isOutlined ? 0 : 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: isOutlined
-                ? const BorderSide(color: Color(0xFFFF6B35), width: 2)
+                ? const BorderSide(color: Color(0xFF4DA8DA), width: 2)
                 : BorderSide.none,
           ),
         ),

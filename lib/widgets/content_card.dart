@@ -133,7 +133,7 @@ class _ContentCardState extends State<ContentCard>
 
   @override
   Widget build(BuildContext context) {
-    print('ini niialsfnd ${widget.initialLikedState}');
+    print('ini niialsfnd ${widget.imageUrl}');
     return GestureDetector(
       onTap: _handleContainerTap,
       child: Container(
@@ -197,7 +197,7 @@ class _ContentCardState extends State<ContentCard>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFF6B35),
+                            color: const Color(0xFF4DA8DA),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -426,7 +426,7 @@ class _ContentCardState extends State<ContentCard>
                             icon: const Icon(
                               Icons.edit_outlined,
                               size: 20,
-                              color: Color(0xFFFF6B35),
+                              color: Color(0xFF4DA8DA),
                             ),
                             constraints: const BoxConstraints(),
                             padding: EdgeInsets.zero,
@@ -457,7 +457,7 @@ class _ContentCardState extends State<ContentCard>
                                     ? Icons.arrow_forward_ios
                                     : Icons.visibility_outlined,
                                 size: widget.views != null ? 16 : 20,
-                                color: const Color(0xFFFF6B35),
+                                color: const Color(0xFF4DA8DA),
                               ),
                               constraints: const BoxConstraints(),
                               padding: EdgeInsets.zero,
