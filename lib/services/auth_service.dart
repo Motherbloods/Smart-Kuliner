@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:smart/models/seller.dart';
 import '../models/user.dart';
 
 class AuthService {
@@ -44,7 +45,7 @@ class AuthService {
 
       if (result.user != null) {
         try {
-          await _createUserDocument(result.user!, name, false, null);
+          await _createUserDocument(result.user!, name, false, null, null);
         } catch (firestoreError) {
           print('❌ Firestore error saat buat user document: $firestoreError');
           // Hapus user dari Firebase Auth jika gagal buat document
@@ -69,6 +70,7 @@ class AuthService {
     String password,
     String name,
     String namaToko,
+    Map<String, dynamic>? sellerData,
   ) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -78,7 +80,13 @@ class AuthService {
 
       if (result.user != null) {
         try {
-          await _createUserDocument(result.user!, name, true, namaToko);
+          await _createUserDocument(
+            result.user!,
+            name,
+            true,
+            namaToko,
+            sellerData,
+          );
         } catch (firestoreError) {
           print('❌ Firestore error saat buat seller document: $firestoreError');
           // Hapus user dari Firebase Auth jika gagal buat document
@@ -103,13 +111,10 @@ class AuthService {
     String name,
     bool isSeller,
     String? namaToko,
+    Map<String, dynamic>? sellerData,
   ) async {
     try {
-      print(
-        '✅ Menyimpan ${isSeller ? 'seller' : 'user'} ke Firestore dengan UID: ${user.uid}',
-      );
-
-      UserModel userModel = UserModel(
+      final userModel = UserModel(
         uid: user.uid,
         email: user.email!,
         name: name,
@@ -119,11 +124,34 @@ class AuthService {
       );
 
       await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
-      print('✅ ${isSeller ? 'Seller' : 'User'} berhasil disimpan di Firestore');
+
+      print('✅ User berhasil disimpan di koleksi "users"');
+
+      if (isSeller && sellerData != null) {
+        print('ini sellerss');
+        final sellerModel = SellerModel(
+          id: user.uid,
+          nameToko: sellerData['nameToko'] ?? '',
+          description: sellerData['description'] ?? '',
+          profileImage: '',
+          location: sellerData['location'] ?? '',
+          rating: 0.0,
+          totalProducts: 0,
+          isVerified: true,
+          joinedDate: DateTime.now(),
+          category: sellerData['category'] ?? 'Lainnya',
+          tags: List<String>.from(sellerData['tags'] ?? []),
+        );
+
+        await _firestore
+            .collection('sellers')
+            .doc(user.uid)
+            .set(sellerModel.toMap());
+
+        print('✅ Seller berhasil disimpan di koleksi "sellers"');
+      }
     } catch (e) {
-      print(
-        '❌ Gagal menyimpan ${isSeller ? 'seller' : 'user'} ke Firestore: $e',
-      );
+      print('❌ Gagal menyimpan data user/seller: $e');
       throw e;
     }
   }
