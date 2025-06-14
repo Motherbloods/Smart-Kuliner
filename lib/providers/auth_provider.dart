@@ -100,25 +100,37 @@ class MyAuthProvider with ChangeNotifier {
     String email,
     String password,
     String name,
-    String namaToko,
-  ) async {
-    try {
-      _setLoading(true);
-      _setError(null);
-      print('🟢 MyAuthProvider: registerSeller() terpanggil');
+    String namaToko, {
+    Map<String, dynamic>? sellerData,
+  }) async {
+    _setLoading(true);
+    _setError(null);
+    print('🟢 MyAuthProvider: registerSeller() terpanggil');
 
+    try {
+      // Registrasi seller via AuthService
       UserCredential? userCredential = await _authService
-          .registerWithEmailAndPasswordSeller(email, password, name, namaToko);
+          .registerWithEmailAndPasswordSeller(
+            email,
+            password,
+            name,
+            namaToko,
+            sellerData,
+          );
 
       if (userCredential != null && userCredential.user != null) {
-        _currentUser = await _authService.getUserData(userCredential.user!.uid);
+        final uid = userCredential.user!.uid;
+
+        // Ambil data user setelah registrasi
+        _currentUser = await _authService.getUserData(uid);
+        print('✅ Registrasi seller berhasil');
         return true;
       } else {
         _currentUser = null;
         return false;
       }
     } catch (e) {
-      print('❌ Error registerSeller: $e');
+      print('❌ Error saat registrasi seller: $e');
       _setError(e.toString());
       return false;
     } finally {
