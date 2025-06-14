@@ -164,7 +164,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     final filteredProducts = _filteredProducts;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -202,7 +202,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             },
             icon: Icon(
               _showFilters ? Icons.filter_list : Icons.filter_list_outlined,
-              color: const Color(0xFFFF6B35),
+              color: const Color(0xFF4DA8DA),
             ),
           ),
         ],
@@ -267,7 +267,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color(0xFFFF6B35)),
+            CircularProgressIndicator(color: Color(0xFF4DA8DA)),
             SizedBox(height: 16),
             Text(
               'Mencari produk...',
@@ -297,7 +297,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               ElevatedButton(
                 onPressed: _refreshProducts,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF6B35),
+                  backgroundColor: const Color(0xFF4DA8DA),
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('Coba Lagi'),
@@ -340,7 +340,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 onPressed: _resetFilters,
                 child: const Text(
                   'Reset',
-                  style: TextStyle(color: Color(0xFFFF6B35)),
+                  style: TextStyle(color: Color(0xFF4DA8DA)),
                 ),
               ),
             ],
@@ -378,7 +378,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFFFF6B35)
+                          ? const Color(0xFF4DA8DA)
                           : Colors.grey[100],
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -408,7 +408,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             min: 0,
             max: maxPriceAvailable,
             divisions: 10,
-            activeColor: const Color(0xFFFF6B35),
+            activeColor: const Color(0xFF4DA8DA),
             labels: RangeLabels(
               'Rp ${_minPrice.toInt()}',
               'Rp ${_maxPrice.toInt()}',
@@ -446,7 +446,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             min: 0,
             max: 5,
             divisions: 5,
-            activeColor: const Color(0xFFFF6B35),
+            activeColor: const Color(0xFF4DA8DA),
             label: '${_minRating.toStringAsFixed(1)} ⭐',
             onChanged: (value) {
               setState(() {
@@ -483,7 +483,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           ElevatedButton(
             onPressed: _resetFilters,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B35),
+              backgroundColor: const Color(0xFF4DA8DA),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -544,7 +544,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 return ListTile(
                   title: Text(option),
                   trailing: _sortBy == option
-                      ? const Icon(Icons.check, color: Color(0xFFFF6B35))
+                      ? const Icon(Icons.check, color: Color(0xFF4DA8DA))
                       : null,
                   onTap: () {
                     setState(() {
