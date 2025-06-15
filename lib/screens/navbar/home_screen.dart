@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:smart/screens/cart_screen.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/cart_provider.dart'; // Import CartProvider
 import 'beranda_screen.dart';
 import 'profile_screen.dart';
-// import 'search_results_screen.dart';
 import 'pusat_promosi_screen.dart';
 import 'pencarian_screen.dart';
 import 'notifikasi_screen.dart';
@@ -18,7 +19,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  // String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (isSeller) {
       // Seller: Produk Saya (BerandaScreen), Pusat Promosi, Notifikasi, Profile
       _screens = [
-        _berandaScreen, // BerandaScreen akan menampilkan "Produk Saya" untuk seller
+        _berandaScreen,
         _pusatPromosiScreen,
         _notifikasiScreen,
         _profileScreen,
@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       // User biasa: Beranda (BerandaScreen), Pencarian, Notifikasi, Profile
       _screens = [
-        _berandaScreen, // BerandaScreen akan menampilkan "Beranda" untuk user biasa
+        _berandaScreen,
         _pencarianScreen,
         _notifikasiScreen,
         _profileScreen,
@@ -125,49 +125,18 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      // Clear search ketika pindah tab
-      // _searchQuery = '';
       _searchController.clear();
-      _searchFocusNode.unfocus(); // Hilangkan focus dari search
+      _searchFocusNode.unfocus();
     });
   }
 
-  // void _clearSearch() {
-  //   setState(() {
-  //     _searchQuery = '';
-  //   });
-  //   _searchController.clear();
-  //   _searchFocusNode.unfocus();
-  // }
-
-  // bool _shouldShowSearchBar() {
-  //   // Tampilkan search bar hanya di screen pertama (BerandaScreen)
-  //   // baik untuk seller maupun user biasa
-  //   return _selectedIndex == 0 && _screens[_selectedIndex] is BerandaScreen;
-  // }
-
-  // void _performSearch() {
-  //   if (_searchQuery.trim().isNotEmpty) {
-  //     _searchFocusNode.unfocus();
-  //     print('🔍 Navigating to search results: $_searchQuery');
-
-  //     // Simpan query sebelum navigasi
-  //     final queryToSearch = _searchQuery.trim();
-
-  //     // Navigasi ke halaman hasil pencarian
-  //     Navigator.push(
-  //       context,
-  //       MaterialPageRoute(
-  //         builder: (context) => SearchResultsScreen(query: queryToSearch),
-  //       ),
-  //     ).then((_) {
-  //       // Clear search SETELAH kembali dari halaman search results
-  //       _clearSearch();
-  //     });
-  //   } else {
-  //     print('🔍 Search query is empty');
-  //   }
-  // }
+  // Fungsi untuk navigasi ke halaman cart
+  void _navigateToCart() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CartScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,40 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return Scaffold(
-          // appBar: _shouldShowSearchBar()
-          //     ? PreferredSize(
-          //         preferredSize: const Size.fromHeight(80),
-          //         child: SafeArea(
-          //           child: Padding(
-          //             padding: const EdgeInsets.symmetric(
-          //               horizontal: 16,
-          //               vertical: 12,
-          //             ),
-          //             child: CustomSearchBar(
-          //               searchController: _searchController,
-          //               searchFocusNode: _searchFocusNode,
-          //               searchQuery: _searchQuery,
-          //               onChanged: (value) {
-          //                 setState(() {
-          //                   _searchQuery = value;
-          //                 });
-          //               },
-          //               onClear: () {
-          //                 _clearSearch();
-          //               },
-          //               onSearch: () {
-          //                 _performSearch();
-          //               },
-          //             ),
-          //           ),
-          //         ),
-          //       )
-          //     : null,
           appBar: AppBar(
             backgroundColor: Colors.white,
-            elevation: 0, // Hilangkan bayangan saat scroll
+            elevation: 0,
             scrolledUnderElevation: 0,
-
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -229,53 +168,67 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: Colors.white, // Tetap isi meskipun ditimpa shader
+                      color: Colors.white,
                     ),
                   ),
                 ),
 
-                // IKON DENGAN GRADIENT
-                Stack(
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (Rect bounds) {
-                        return const LinearGradient(
-                          colors: [Color(0xFFE53935), Color(0xFF4DA8DA)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ).createShader(bounds);
-                      },
-                      child: const Icon(
-                        Icons.shopping_cart,
-                        size: 28,
-                        color:
-                            Colors.white, // Warna default, akan ditimpa shader
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Text(
-                          '3',
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                        ),
-                      ),
-                    ),
-                  ],
+                // IKON CART DENGAN COUNTER YANG DINAMIS
+                GestureDetector(
+                  onTap: _navigateToCart,
+                  child: Consumer<CartProvider>(
+                    builder: (context, cartProvider, child) {
+                      return Stack(
+                        children: [
+                          ShaderMask(
+                            shaderCallback: (Rect bounds) {
+                              return const LinearGradient(
+                                colors: [Color(0xFFE53935), Color(0xFF4DA8DA)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ).createShader(bounds);
+                            },
+                            child: const Icon(
+                              Icons.shopping_cart,
+                              size: 28,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (cartProvider.itemCount > 0)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                child: Text(
+                                  '${cartProvider.itemCount}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
           ),
-
           body: GestureDetector(
             onTap: () {
-              // Hilangkan focus dari search field ketika tap di area lain
               _searchFocusNode.unfocus();
             },
             child: IndexedStack(index: _selectedIndex, children: _screens),

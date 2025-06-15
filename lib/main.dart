@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
+import 'providers/cart_provider.dart';
+import 'screens/cart_screen.dart';
 import 'screens/navbar/home_screen.dart'; // You'll create this later
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -23,6 +25,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => MyAuthProvider()..initialize(),
         ),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
       ],
       child: MaterialApp(
         title: 'SmartKuliner',
