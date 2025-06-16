@@ -27,9 +27,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _locationController = TextEditingController();
   final _categoryController = TextEditingController();
 
+  // Regular user fields
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _provinceController = TextEditingController();
+  final _postalCodeController = TextEditingController();
+
   bool _isLoading = false;
   bool _hasChanges = false;
   SellerModel? _sellerData;
+  String? _selectedGender;
+  DateTime? _selectedDateOfBirth;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -44,7 +53,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     "Lainnya",
   ];
 
-  // Tags management
+  // Gender options for regular users
+  final List<String> _genderOptions = ['Laki-laki', 'Perempuan'];
+
+  // Tags management for sellers
   List<String> _selectedTags = [];
   final List<String> _availableTags = [
     'Halal',
@@ -72,16 +84,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _initializeControllers() {
     _nameController.text = widget.userData.name;
+
+    // Initialize regular user fields
+    _phoneController.text = widget.userData.phoneNumber ?? '';
+    _addressController.text = widget.userData.address ?? '';
+    _cityController.text = widget.userData.city ?? '';
+    _provinceController.text = widget.userData.province ?? '';
+    _postalCodeController.text = widget.userData.postalCode ?? '';
+    _selectedGender = widget.userData.gender;
+    _selectedDateOfBirth = widget.userData.dateOfBirth;
+
+    // Initialize seller fields if user is a seller
     if (widget.userData.seller && widget.userData.namaToko != null) {
       _namaTokoController.text = widget.userData.namaToko!;
     }
 
     // Add listeners to detect changes
     _nameController.addListener(_onFieldChanged);
-    _namaTokoController.addListener(_onFieldChanged);
-    _descriptionController.addListener(_onFieldChanged);
-    _locationController.addListener(_onFieldChanged);
-    _categoryController.addListener(_onFieldChanged);
+    _phoneController.addListener(_onFieldChanged);
+    _addressController.addListener(_onFieldChanged);
+    _cityController.addListener(_onFieldChanged);
+    _provinceController.addListener(_onFieldChanged);
+    _postalCodeController.addListener(_onFieldChanged);
+
+    if (widget.userData.seller) {
+      _namaTokoController.addListener(_onFieldChanged);
+      _descriptionController.addListener(_onFieldChanged);
+      _locationController.addListener(_onFieldChanged);
+      _categoryController.addListener(_onFieldChanged);
+    }
   }
 
   Future<void> _loadSellerData() async {
@@ -109,21 +140,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _onFieldChanged() {
+    // Check basic user fields
     final nameChanged = _nameController.text.trim() != widget.userData.name;
-    final tokoChanged =
-        widget.userData.seller &&
-        _namaTokoController.text.trim() != (widget.userData.namaToko ?? '');
+    final phoneChanged =
+        _phoneController.text.trim() != (widget.userData.phoneNumber ?? '');
+    final addressChanged =
+        _addressController.text.trim() != (widget.userData.address ?? '');
+    final cityChanged =
+        _cityController.text.trim() != (widget.userData.city ?? '');
+    final provinceChanged =
+        _provinceController.text.trim() != (widget.userData.province ?? '');
+    final postalCodeChanged =
+        _postalCodeController.text.trim() != (widget.userData.postalCode ?? '');
+    final genderChanged = _selectedGender != widget.userData.gender;
+    final dateOfBirthChanged =
+        _selectedDateOfBirth != widget.userData.dateOfBirth;
 
+    // Check seller fields if user is a seller
+    bool tokoChanged = false;
     bool sellerFieldsChanged = false;
-    if (widget.userData.seller && _sellerData != null) {
-      sellerFieldsChanged =
-          _descriptionController.text.trim() != _sellerData!.description ||
-          _locationController.text.trim() != _sellerData!.location ||
-          _categoryController.text.trim() != _sellerData!.category ||
-          !_listsEqual(_selectedTags, _sellerData!.tags);
+
+    if (widget.userData.seller) {
+      tokoChanged =
+          _namaTokoController.text.trim() != (widget.userData.namaToko ?? '');
+
+      if (_sellerData != null) {
+        sellerFieldsChanged =
+            _descriptionController.text.trim() != _sellerData!.description ||
+            _locationController.text.trim() != _sellerData!.location ||
+            _categoryController.text.trim() != _sellerData!.category ||
+            !_listsEqual(_selectedTags, _sellerData!.tags);
+      }
     }
 
-    final hasChanges = nameChanged || tokoChanged || sellerFieldsChanged;
+    final hasChanges =
+        nameChanged ||
+        phoneChanged ||
+        addressChanged ||
+        cityChanged ||
+        provinceChanged ||
+        postalCodeChanged ||
+        genderChanged ||
+        dateOfBirthChanged ||
+        tokoChanged ||
+        sellerFieldsChanged;
 
     if (hasChanges != _hasChanges) {
       setState(() {
@@ -143,11 +203,50 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _namaTokoController.dispose();
-    _descriptionController.dispose();
-    _locationController.dispose();
-    _categoryController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _provinceController.dispose();
+    _postalCodeController.dispose();
+
+    if (widget.userData.seller) {
+      _namaTokoController.dispose();
+      _descriptionController.dispose();
+      _locationController.dispose();
+      _categoryController.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _selectDateOfBirth() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate:
+          _selectedDateOfBirth ??
+          DateTime.now().subtract(const Duration(days: 365 * 20)),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF4DA8DA),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF2D3748),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDateOfBirth) {
+      setState(() {
+        _selectedDateOfBirth = picked;
+        _onFieldChanged();
+      });
+    }
   }
 
   Future<void> _updateProfile() async {
@@ -170,6 +269,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         userUpdateData['name'] = newName;
       }
 
+      // Regular user fields
+      final newPhone = _phoneController.text.trim();
+      if (newPhone != (widget.userData.phoneNumber ?? '')) {
+        userUpdateData['phoneNumber'] = newPhone.isEmpty ? null : newPhone;
+      }
+
+      final newAddress = _addressController.text.trim();
+      if (newAddress != (widget.userData.address ?? '')) {
+        userUpdateData['address'] = newAddress.isEmpty ? null : newAddress;
+      }
+
+      final newCity = _cityController.text.trim();
+      if (newCity != (widget.userData.city ?? '')) {
+        userUpdateData['city'] = newCity.isEmpty ? null : newCity;
+      }
+
+      final newProvince = _provinceController.text.trim();
+      if (newProvince != (widget.userData.province ?? '')) {
+        userUpdateData['province'] = newProvince.isEmpty ? null : newProvince;
+      }
+
+      final newPostalCode = _postalCodeController.text.trim();
+      if (newPostalCode != (widget.userData.postalCode ?? '')) {
+        userUpdateData['postalCode'] = newPostalCode.isEmpty
+            ? null
+            : newPostalCode;
+      }
+
+      if (_selectedGender != widget.userData.gender) {
+        userUpdateData['gender'] = _selectedGender;
+      }
+
+      if (_selectedDateOfBirth != widget.userData.dateOfBirth) {
+        userUpdateData['dateOfBirth'] = _selectedDateOfBirth?.toIso8601String();
+      }
+
+      // Seller specific fields
       if (widget.userData.seller) {
         final newNamaToko = _namaTokoController.text.trim();
         if (newNamaToko != (widget.userData.namaToko ?? '')) {
@@ -237,18 +373,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
 
       // Update local user data
-      final updatedUser = UserModel(
-        uid: widget.userData.uid,
-        email: widget.userData.email,
-        name: userUpdateData.containsKey('name')
-            ? newName
-            : widget.userData.name,
-        createdAt: widget.userData.createdAt,
-        seller: widget.userData.seller,
-        namaToko: widget.userData.seller
-            ? (userUpdateData.containsKey('namaToko')
-                  ? _namaTokoController.text.trim()
-                  : widget.userData.namaToko)
+      final updatedUser = widget.userData.copyWith(
+        name: userUpdateData.containsKey('name') ? newName : null,
+        phoneNumber: userUpdateData.containsKey('phoneNumber')
+            ? userUpdateData['phoneNumber']
+            : null,
+        address: userUpdateData.containsKey('address')
+            ? userUpdateData['address']
+            : null,
+        city: userUpdateData.containsKey('city')
+            ? userUpdateData['city']
+            : null,
+        province: userUpdateData.containsKey('province')
+            ? userUpdateData['province']
+            : null,
+        postalCode: userUpdateData.containsKey('postalCode')
+            ? userUpdateData['postalCode']
+            : null,
+        gender: userUpdateData.containsKey('gender')
+            ? userUpdateData['gender']
+            : null,
+        dateOfBirth: userUpdateData.containsKey('dateOfBirth')
+            ? _selectedDateOfBirth
+            : null,
+        namaToko:
+            widget.userData.seller && userUpdateData.containsKey('namaToko')
+            ? userUpdateData['namaToko']
             : null,
       );
 
@@ -321,6 +471,267 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     return shouldPop ?? false;
+  }
+
+  Widget _buildRegularUserSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Informasi Personal',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3748),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Phone Number
+        TextFormField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: InputDecoration(
+            label: const Text('Nomor Telepon'),
+            prefixIcon: const Icon(
+              Icons.phone_outlined,
+              color: Color(0xFF718096),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF4DA8DA), width: 2),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF7FAFC),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Gender Dropdown
+        DropdownButtonFormField<String>(
+          value: _selectedGender,
+          decoration: InputDecoration(
+            label: const Text('Jenis Kelamin'),
+            prefixIcon: const Icon(
+              Icons.person_outline,
+              color: Color(0xFF718096),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF4DA8DA), width: 2),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF7FAFC),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+          items: _genderOptions.map((String gender) {
+            return DropdownMenuItem<String>(value: gender, child: Text(gender));
+          }).toList(),
+          onChanged: (String? newValue) {
+            setState(() {
+              _selectedGender = newValue;
+              _onFieldChanged();
+            });
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Date of Birth
+        GestureDetector(
+          onTap: _selectDateOfBirth,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  color: Color(0xFF718096),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedDateOfBirth != null
+                        ? '${_selectedDateOfBirth!.day}/${_selectedDateOfBirth!.month}/${_selectedDateOfBirth!.year}'
+                        : 'Tanggal Lahir',
+                    style: TextStyle(
+                      color: _selectedDateOfBirth != null
+                          ? const Color(0xFF2D3748)
+                          : const Color(0xFF718096),
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Address Section
+        const Text(
+          'Alamat',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3748),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Address
+        TextFormField(
+          controller: _addressController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            label: const Text('Alamat Lengkap'),
+            prefixIcon: const Icon(
+              Icons.home_outlined,
+              color: Color(0xFF718096),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF4DA8DA), width: 2),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF7FAFC),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // City
+        TextFormField(
+          controller: _cityController,
+          decoration: InputDecoration(
+            label: const Text('Kota'),
+            prefixIcon: const Icon(
+              Icons.location_city_outlined,
+              color: Color(0xFF718096),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF4DA8DA), width: 2),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF7FAFC),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Province
+        TextFormField(
+          controller: _provinceController,
+          decoration: InputDecoration(
+            label: const Text('Provinsi'),
+            prefixIcon: const Icon(
+              Icons.map_outlined,
+              color: Color(0xFF718096),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF4DA8DA), width: 2),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF7FAFC),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Postal Code
+        TextFormField(
+          controller: _postalCodeController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            label: const Text('Kode Pos'),
+            prefixIcon: const Icon(
+              Icons.markunread_mailbox_outlined,
+              color: Color(0xFF718096),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF4DA8DA), width: 2),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF7FAFC),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildTagSelector() {
@@ -477,16 +888,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                 const SizedBox(height: 24),
 
-                // Basic Information
+                // Basic Information (Name)
                 BasicInfoSection(
                   userData: widget.userData,
                   nameController: _nameController,
                   namaTokoController: _namaTokoController,
                 ),
 
-                // Seller Information (only for sellers)
+                const SizedBox(height: 24),
+
+                // Different sections based on user type
                 if (widget.userData.seller) ...[
-                  const SizedBox(height: 24),
+                  // Seller Information
                   SellerInfoSection(
                     descriptionController: _descriptionController,
                     locationController: _locationController,
@@ -497,6 +910,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                   // Tags Selector
                   _buildTagSelector(),
+                ] else ...[
+                  // Regular User Information
+                  _buildRegularUserSection(),
                 ],
 
                 const SizedBox(height: 32),

@@ -70,24 +70,56 @@ class MyAuthProvider with ChangeNotifier {
   }
 
   // Register User Biasa
-  Future<bool> registerUser(String email, String password, String name) async {
+  Future<bool> registerUser(
+    String email,
+    String password,
+    String name, {
+    String? phoneNumber,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? address,
+    String? city,
+    String? province,
+    String? postalCode,
+    List<String>? favoriteCategories,
+  }) async {
     try {
+      clearError();
       _setLoading(true);
-      _setError(null);
-      print('🟢 MyAuthProvider: registerUser() terpanggil');
 
-      UserCredential? userCredential = await _authService
-          .registerWithEmailAndPassword(email, password, name);
+      print('🟡 Mulai registrasi user dengan data lengkap');
+      print('📧 Email: $email');
+      print('👤 Nama: $name');
+      print('📱 Phone: $phoneNumber');
+      print('🎂 DOB: $dateOfBirth');
+      print('⚤ Gender: $gender');
+      print('🏠 Address: $address');
+      print('🏙️ City: $city');
+      print('🗺️ Province: $province');
+      print('📮 Postal: $postalCode');
+      print('💝 Categories: $favoriteCategories');
 
-      if (userCredential != null && userCredential.user != null) {
-        _currentUser = await _authService.getUserData(userCredential.user!.uid);
+      final result = await _authService.registerWithEmailAndPassword(
+        email,
+        password,
+        name,
+        phoneNumber: phoneNumber,
+        dateOfBirth: dateOfBirth,
+        gender: gender,
+        address: address,
+        city: city,
+        province: province,
+        postalCode: postalCode,
+        favoriteCategories: favoriteCategories,
+      );
+
+      if (result != null) {
+        print('✅ Registrasi user berhasil');
         return true;
-      } else {
-        _currentUser = null;
-        return false;
       }
+      return false;
     } catch (e) {
-      print('❌ Error registerUser: $e');
+      print('❌ Registrasi user gagal: $e');
       _setError(e.toString());
       return false;
     } finally {

@@ -23,6 +23,12 @@ class AuthService {
         email: email.trim(),
         password: password,
       );
+
+      // Update last login time
+      if (result.user != null) {
+        await _updateLastLoginTime(result.user!.uid);
+      }
+
       return result;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
@@ -35,8 +41,16 @@ class AuthService {
   Future<UserCredential?> registerWithEmailAndPassword(
     String email,
     String password,
-    String name,
-  ) async {
+    String name, {
+    String? phoneNumber,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? address,
+    String? city,
+    String? province,
+    String? postalCode,
+    List<String>? favoriteCategories,
+  }) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -45,7 +59,21 @@ class AuthService {
 
       if (result.user != null) {
         try {
-          await _createUserDocument(result.user!, name, false, null, null);
+          await _createUserDocument(
+            result.user!,
+            name,
+            false,
+            null,
+            null,
+            phoneNumber: phoneNumber,
+            dateOfBirth: dateOfBirth,
+            gender: gender,
+            address: address,
+            city: city,
+            province: province,
+            postalCode: postalCode,
+            favoriteCategories: favoriteCategories,
+          );
         } catch (firestoreError) {
           print('❌ Firestore error saat buat user document: $firestoreError');
           // Hapus user dari Firebase Auth jika gagal buat document
@@ -70,8 +98,15 @@ class AuthService {
     String password,
     String name,
     String namaToko,
-    Map<String, dynamic>? sellerData,
-  ) async {
+    Map<String, dynamic>? sellerData, {
+    String? phoneNumber,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? address,
+    String? city,
+    String? province,
+    String? postalCode,
+  }) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -86,6 +121,13 @@ class AuthService {
             true,
             namaToko,
             sellerData,
+            phoneNumber: phoneNumber,
+            dateOfBirth: dateOfBirth,
+            gender: gender,
+            address: address,
+            city: city,
+            province: province,
+            postalCode: postalCode,
           );
         } catch (firestoreError) {
           print('❌ Firestore error saat buat seller document: $firestoreError');
@@ -111,8 +153,16 @@ class AuthService {
     String name,
     bool isSeller,
     String? namaToko,
-    Map<String, dynamic>? sellerData,
-  ) async {
+    Map<String, dynamic>? sellerData, {
+    String? phoneNumber,
+    DateTime? dateOfBirth,
+    String? gender,
+    String? address,
+    String? city,
+    String? province,
+    String? postalCode,
+    List<String>? favoriteCategories,
+  }) async {
     try {
       final userModel = UserModel(
         uid: user.uid,
@@ -121,6 +171,17 @@ class AuthService {
         createdAt: DateTime.now(),
         seller: isSeller,
         namaToko: isSeller ? namaToko : null,
+        phoneNumber: phoneNumber,
+        dateOfBirth: dateOfBirth,
+        gender: gender,
+        address: address,
+        city: city,
+        province: province,
+        postalCode: postalCode,
+        favoriteCategories: favoriteCategories ?? [],
+        emailVerified: user.emailVerified,
+        phoneVerified: false,
+        lastLoginAt: DateTime.now(),
       );
 
       await _firestore.collection('users').doc(user.uid).set(userModel.toMap());
@@ -156,6 +217,18 @@ class AuthService {
     }
   }
 
+  // Update last login time
+  Future<void> _updateLastLoginTime(String uid) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'lastLoginAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      print('❌ Gagal update last login time: $e');
+      // Don't throw error, just log it
+    }
+  }
+
   // Get user data from Firestore
   Future<UserModel?> getUserData(String uid) async {
     try {
@@ -171,6 +244,44 @@ class AuthService {
     } catch (e) {
       print('Error getting user data: $e');
       return null;
+    }
+  }
+
+  // Update user profile
+  Future<bool> updateUserProfile(
+    String uid,
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      await _firestore.collection('users').doc(uid).update(updates);
+      print('✅ Profile berhasil diupdate');
+      return true;
+    } catch (e) {
+      print('❌ Gagal update profile: $e');
+      return false;
+    }
+  }
+
+  // Verify email
+  Future<void> sendEmailVerification() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+    } catch (e) {
+      throw 'Gagal mengirim email verifikasi';
+    }
+  }
+
+  // Reset password
+  Future<void> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw 'Gagal mengirim email reset password';
     }
   }
 
