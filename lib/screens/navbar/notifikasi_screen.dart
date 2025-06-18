@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart/screens/pesanan_saya_screen.dart';
+import 'package:smart/widgets/notification/empty_state_widget.dart';
+import 'package:smart/utils/notification_utils.dart';
+import 'package:smart/widgets/notification/clear_all_dialog.dart';
+import 'package:smart/widgets/notification/mark_all_as_read_dialog.dart';
+import 'package:smart/widgets/notification/notification_details_dialog.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/notification_service.dart';
+import '../../services/order_service.dart';
+import '../../models/notifikasi.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class NotifikasiScreen extends StatefulWidget {
   const NotifikasiScreen({Key? key}) : super(key: key);
@@ -12,11 +22,75 @@ class NotifikasiScreen extends StatefulWidget {
 class _NotifikasiScreenState extends State<NotifikasiScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final NotificationService _notificationService = NotificationService();
+  final OrderService _orderService = OrderService();
+
+  String? currentUserId;
+  Stream<List<NotificationModel>>? notificationsStream;
+  Stream<int>? unreadCountStream;
+
+  // Add loading and error states
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<NotificationModel> _cachedNotifications = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initializeNotifications();
+  }
+
+  void _initializeNotifications() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+      if (currentUserId != null) {
+        // Create streams
+        notificationsStream = _notificationService.getUserNotifications(
+          currentUserId!,
+        );
+        unreadCountStream = _notificationService.getUnreadNotificationCount(
+          currentUserId!,
+        );
+
+        // Listen to the first emission to cache data and handle initial loading
+        notificationsStream!.first
+            .then((notifications) {
+              if (mounted) {
+                setState(() {
+                  _cachedNotifications = notifications;
+                  _isLoading = false;
+                });
+              }
+            })
+            .catchError((error) {
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                  _errorMessage = error.toString();
+                });
+              }
+            });
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'User tidak ditemukan';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
+      }
+    }
   }
 
   @override
@@ -36,13 +110,45 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            title: const Text(
-              'Notifikasi',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
+            title: Row(
+              children: [
+                const Text(
+                  'Notifikasi',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Unread count badge
+                StreamBuilder<int>(
+                  stream: unreadCountStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data! > 0) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4DA8DA),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${snapshot.data}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
             ),
             actions: [
               IconButton(
@@ -54,6 +160,41 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
                   _showMarkAllAsReadDialog();
                 },
                 tooltip: 'Tandai semua sudah dibaca',
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.black54),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'clear_all':
+                      _showClearAllDialog();
+                      break;
+                    case 'refresh':
+                      _initializeNotifications();
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'refresh',
+                    child: Row(
+                      children: [
+                        Icon(Icons.refresh, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('Refresh'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'clear_all',
+                    child: Row(
+                      children: [
+                        Icon(Icons.clear_all, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('Hapus Semua'),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
             bottom: TabBar(
@@ -77,87 +218,161 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
               ],
             ),
           ),
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildAllNotifications(isSeller),
-              _buildTransactionNotifications(isSeller),
-              _buildPromotionNotifications(isSeller),
-            ],
+          body: currentUserId == null
+              ? const Center(child: Text('Silakan login terlebih dahulu'))
+              : _buildBody(),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody() {
+    // Show initial loading
+    if (_isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Memuat notifikasi...'),
+          ],
+        ),
+      );
+    }
+
+    // Show error state
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Terjadi kesalahan: $_errorMessage'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                _initializeNotifications();
+              },
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show tabs with data
+    return TabBarView(
+      controller: _tabController,
+      children: [
+        _buildAllNotifications(),
+        _buildTransactionNotifications(),
+        _buildPromotionNotifications(),
+      ],
+    );
+  }
+
+  Widget _buildAllNotifications() {
+    return StreamBuilder<List<NotificationModel>>(
+      stream: notificationsStream,
+      initialData: _cachedNotifications, // Use cached data as initial
+      builder: (context, snapshot) {
+        // Use cached data while waiting for new data
+        final notifications = snapshot.data ?? _cachedNotifications;
+
+        if (notifications.isEmpty) {
+          return const EmptyStateWidget(message: 'Belum ada notifikasi');
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            _initializeNotifications();
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              return _buildNotificationCard(notifications[index]);
+            },
           ),
         );
       },
     );
   }
 
-  Widget _buildAllNotifications(bool isSeller) {
-    final notifications = _getAllNotifications(isSeller);
+  Widget _buildTransactionNotifications() {
+    return StreamBuilder<List<NotificationModel>>(
+      stream: notificationsStream,
+      initialData: _cachedNotifications, // Use cached data as initial
+      builder: (context, snapshot) {
+        final allNotifications = snapshot.data ?? _cachedNotifications;
+        final transactionNotifications = allNotifications
+            .where(
+              (n) => [
+                'new_order',
+                'order_status_update',
+                'payment_success',
+                'shipping_update',
+              ].contains(n.type),
+            )
+            .toList();
 
-    if (notifications.isEmpty) {
-      return _buildEmptyState('Belum ada notifikasi');
-    }
+        if (transactionNotifications.isEmpty) {
+          return const EmptyStateWidget(
+            message: 'Belum ada notifikasi transaksi',
+          );
+        }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        // Simulate refresh
-        await Future.delayed(const Duration(seconds: 1));
-        setState(() {});
+        return RefreshIndicator(
+          onRefresh: () async {
+            _initializeNotifications();
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: transactionNotifications.length,
+            itemBuilder: (context, index) {
+              return _buildNotificationCard(transactionNotifications[index]);
+            },
+          ),
+        );
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: notifications.length,
-        itemBuilder: (context, index) {
-          return _buildNotificationCard(notifications[index]);
-        },
-      ),
     );
   }
 
-  Widget _buildTransactionNotifications(bool isSeller) {
-    final notifications = _getTransactionNotifications(isSeller);
+  Widget _buildPromotionNotifications() {
+    return StreamBuilder<List<NotificationModel>>(
+      stream: notificationsStream,
+      initialData: _cachedNotifications, // Use cached data as initial
+      builder: (context, snapshot) {
+        final allNotifications = snapshot.data ?? _cachedNotifications;
+        final promotionNotifications = allNotifications
+            .where((n) => n.type == 'promotion')
+            .toList();
 
-    if (notifications.isEmpty) {
-      return _buildEmptyState('Belum ada notifikasi transaksi');
-    }
+        if (promotionNotifications.isEmpty) {
+          return const EmptyStateWidget(
+            message: "Belum ada notifikasi promosi",
+          );
+        }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await Future.delayed(const Duration(seconds: 1));
-        setState(() {});
+        return RefreshIndicator(
+          onRefresh: () async {
+            _initializeNotifications();
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: promotionNotifications.length,
+            itemBuilder: (context, index) {
+              return _buildNotificationCard(promotionNotifications[index]);
+            },
+          ),
+        );
       },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: notifications.length,
-        itemBuilder: (context, index) {
-          return _buildNotificationCard(notifications[index]);
-        },
-      ),
     );
   }
 
-  Widget _buildPromotionNotifications(bool isSeller) {
-    final notifications = _getPromotionNotifications(isSeller);
-
-    if (notifications.isEmpty) {
-      return _buildEmptyState('Belum ada notifikasi promosi');
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await Future.delayed(const Duration(seconds: 1));
-        setState(() {});
-      },
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: notifications.length,
-        itemBuilder: (context, index) {
-          return _buildNotificationCard(notifications[index]);
-        },
-      ),
-    );
-  }
-
-  Widget _buildNotificationCard(NotificationItem notification) {
+  Widget _buildNotificationCard(NotificationModel notification) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -178,12 +393,7 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
         ],
       ),
       child: InkWell(
-        onTap: () {
-          setState(() {
-            notification.isRead = true;
-          });
-          _handleNotificationTap(notification);
-        },
+        onTap: () => _handleNotificationTap(notification),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -194,11 +404,13 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _getNotificationIconColor(notification.type),
+                  color: NotificationUtils.getNotificationIconColor(
+                    notification.type,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  _getNotificationIcon(notification.type),
+                  NotificationUtils.getNotificationIcon(notification.type),
                   color: Colors.white,
                   size: 24,
                 ),
@@ -231,11 +443,59 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
                               shape: BoxShape.circle,
                             ),
                           ),
+                        PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: Colors.grey[400],
+                            size: 16,
+                          ),
+                          onSelected: (value) {
+                            switch (value) {
+                              case 'delete':
+                                NotificationUtils.deleteNotification(
+                                  context: context,
+                                  service: _notificationService,
+                                  notification: notification,
+                                );
+                                break;
+                              case 'mark_read':
+                                _markAsRead(notification);
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            if (!notification.isRead)
+                              const PopupMenuItem(
+                                value: 'mark_read',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.mark_chat_read, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Tandai Dibaca'),
+                                  ],
+                                ),
+                              ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Hapus'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      notification.message,
+                      notification.body,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -247,13 +507,18 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          notification.time,
+                          NotificationUtils.formatTime(
+                            notification.createdAt.toIso8601String(),
+                          ),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[500],
                           ),
                         ),
-                        if (notification.actionText != null)
+                        if (NotificationUtils.getActionText(
+                              notification.type,
+                            ) !=
+                            null)
                           TextButton(
                             onPressed: () =>
                                 _handleNotificationAction(notification),
@@ -265,12 +530,24 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: Text(
-                              notification.actionText!,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF4DA8DA),
-                                fontWeight: FontWeight.w600,
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => PesananSayaScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                NotificationUtils.getActionText(
+                                  notification.type,
+                                )!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF4DA8DA),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -286,46 +563,77 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
     );
   }
 
-  Widget _buildEmptyState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.notifications_none_outlined,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
+  // Mark notification as read
+  Future<void> _markAsRead(NotificationModel notification) async {
+    if (!notification.isRead) {
+      try {
+        await _notificationService.markNotificationAsRead(notification.id);
+      } catch (e) {
+        print('Error marking notification as read: $e');
+      }
+    }
+  }
+
+  // Handle notification tap
+  void _handleNotificationTap(NotificationModel notification) async {
+    // Mark as read
+    await _markAsRead(notification);
+
+    // Navigate based on notification type
+    switch (notification.type) {
+      case 'new_order':
+      case 'order_status_update':
+        if (notification.orderId != null) {
+          _navigateToOrderDetails(notification.orderId!);
+        }
+        break;
+      case 'promotion':
+        _navigateToPromotions();
+        break;
+      default:
+        // Show notification details dialog
+        showDialog(
+          context: context,
+          builder: (context) =>
+              NotificationDetailsDialog(notification: notification),
+        );
+        break;
+    }
+  }
+
+  // Handle notification action button
+  void _handleNotificationAction(NotificationModel notification) {
+    switch (notification.type) {
+      case 'new_order':
+        if (notification.orderId != null) {
+          _navigateToOrderDetails(notification.orderId!);
+        }
+        break;
+      case 'order_status_update':
+        if (notification.orderId != null) {
+          _navigateToOrderTracking(notification.orderId!);
+        }
+        break;
+      case 'promotion':
+        _navigateToPromotions();
+        break;
+      default:
+        break;
+    }
   }
 
   void _showMarkAllAsReadDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Tandai Semua Sudah Dibaca'),
-          content: const Text(
-            'Apakah Anda yakin ingin menandai semua notifikasi sebagai sudah dibaca?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Batal'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  // Mark all notifications as read
-                });
-                Navigator.of(context).pop();
+      builder: (context) => MarkAllAsReadDialog(
+        onConfirm: () async {
+          if (currentUserId != null) {
+            try {
+              await _notificationService.markAllNotificationsAsRead(
+                currentUserId!,
+              );
+
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
@@ -334,285 +642,69 @@ class _NotifikasiScreenState extends State<NotifikasiScreen>
                     backgroundColor: Color(0xFF4CAF50),
                   ),
                 );
-              },
-              child: const Text('Ya'),
-            ),
-          ],
-        );
-      },
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Gagal menandai notifikasi: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          }
+        },
+      ),
     );
   }
 
-  IconData _getNotificationIcon(NotificationType type) {
-    switch (type) {
-      case NotificationType.purchase:
-        return Icons.shopping_bag;
-      case NotificationType.rating:
-        return Icons.star;
-      case NotificationType.order:
-        return Icons.receipt_long;
-      case NotificationType.promotion:
-        return Icons.local_offer;
-      case NotificationType.payment:
-        return Icons.payment;
-      case NotificationType.shipping:
-        return Icons.local_shipping;
-      case NotificationType.review:
-        return Icons.rate_review;
-      case NotificationType.system:
-        return Icons.info;
-    }
+  void _showClearAllDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => ClearAllDialog(
+        onConfirm: () async {
+          if (currentUserId != null) {
+            try {
+              await _notificationService.clearAllNotifications(currentUserId!);
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Semua notifikasi berhasil dihapus'),
+                    backgroundColor: Color(0xFF4CAF50),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Gagal menghapus notifikasi: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          }
+        },
+      ),
+    );
   }
 
-  Color _getNotificationIconColor(NotificationType type) {
-    switch (type) {
-      case NotificationType.purchase:
-        return const Color(0xFF4CAF50);
-      case NotificationType.rating:
-        return const Color(0xFFFFC107);
-      case NotificationType.order:
-        return const Color(0xFF2196F3);
-      case NotificationType.promotion:
-        return const Color(0xFF4DA8DA);
-      case NotificationType.payment:
-        return const Color(0xFF9C27B0);
-      case NotificationType.shipping:
-        return const Color(0xFF795548);
-      case NotificationType.review:
-        return const Color(0xFFE91E63);
-      case NotificationType.system:
-        return const Color(0xFF607D8B);
-    }
+  // Navigation methods
+  void _navigateToOrderDetails(String orderId) {
+    // Implement navigation to order details screen
+    Navigator.pushNamed(context, '/order-details', arguments: orderId);
   }
 
-  void _handleNotificationTap(NotificationItem notification) {
-    // Handle notification tap based on type
-    switch (notification.type) {
-      case NotificationType.purchase:
-      case NotificationType.order:
-        // Navigate to order details
-        break;
-      case NotificationType.rating:
-      case NotificationType.review:
-        // Navigate to product reviews
-        break;
-      case NotificationType.promotion:
-        // Navigate to promotion details
-        break;
-      case NotificationType.payment:
-        // Navigate to payment details
-        break;
-      case NotificationType.shipping:
-        // Navigate to shipping tracking
-        break;
-      case NotificationType.system:
-        // Show system notification details
-        break;
-    }
+  void _navigateToOrderTracking(String orderId) {
+    // Implement navigation to order tracking screen
+    Navigator.pushNamed(context, '/order-tracking', arguments: orderId);
   }
 
-  void _handleNotificationAction(NotificationItem notification) {
-    // Handle notification action button
-    switch (notification.type) {
-      case NotificationType.rating:
-        // Navigate to review form
-        break;
-      case NotificationType.order:
-        // Navigate to order tracking
-        break;
-      case NotificationType.promotion:
-        // Navigate to promotion page
-        break;
-      default:
-        break;
-    }
+  void _navigateToPromotions() {
+    // Implement navigation to promotions screen
+    Navigator.pushNamed(context, '/promotions');
   }
-
-  List<NotificationItem> _getAllNotifications(bool isSeller) {
-    if (isSeller) {
-      return _getSellerNotifications();
-    } else {
-      return _getBuyerNotifications();
-    }
-  }
-
-  List<NotificationItem> _getTransactionNotifications(bool isSeller) {
-    final allNotifications = _getAllNotifications(isSeller);
-    return allNotifications
-        .where(
-          (n) => [
-            NotificationType.purchase,
-            NotificationType.order,
-            NotificationType.payment,
-            NotificationType.shipping,
-          ].contains(n.type),
-        )
-        .toList();
-  }
-
-  List<NotificationItem> _getPromotionNotifications(bool isSeller) {
-    final allNotifications = _getAllNotifications(isSeller);
-    return allNotifications
-        .where((n) => n.type == NotificationType.promotion)
-        .toList();
-  }
-
-  List<NotificationItem> _getSellerNotifications() {
-    return [
-      NotificationItem(
-        id: '1',
-        type: NotificationType.purchase,
-        title: 'Produk Anda Dibeli!',
-        message:
-            'Sepatu Nike Air Max telah dibeli oleh John Doe. Total pembelian: Rp 1.200.000',
-        time: '2 menit yang lalu',
-        isRead: false,
-        actionText: 'Lihat Pesanan',
-      ),
-      NotificationItem(
-        id: '2',
-        type: NotificationType.rating,
-        title: 'Produk Mendapat Rating Baru',
-        message:
-            'Tas Laptop Anda mendapat rating 5 bintang dari Sarah. "Kualitas sangat bagus dan pengiriman cepat!"',
-        time: '1 jam yang lalu',
-        isRead: false,
-        actionText: 'Lihat Review',
-      ),
-      NotificationItem(
-        id: '3',
-        type: NotificationType.order,
-        title: 'Pesanan Perlu Diproses',
-        message:
-            '3 pesanan baru menunggu konfirmasi Anda. Segera proses untuk kepuasan pelanggan.',
-        time: '3 jam yang lalu',
-        isRead: true,
-        actionText: 'Proses Pesanan',
-      ),
-      NotificationItem(
-        id: '4',
-        type: NotificationType.promotion,
-        title: 'Promosi Berakhir Hari Ini',
-        message:
-            'Flash Sale untuk Elektronik akan berakhir dalam 6 jam. 12 produk Anda sudah terjual!',
-        time: '5 jam yang lalu',
-        isRead: true,
-        actionText: 'Lihat Promosi',
-      ),
-      NotificationItem(
-        id: '5',
-        type: NotificationType.payment,
-        title: 'Pembayaran Diterima',
-        message:
-            'Pembayaran sebesar Rp 850.000 untuk 2 produk telah masuk ke rekening Anda.',
-        time: '1 hari yang lalu',
-        isRead: true,
-      ),
-      NotificationItem(
-        id: '6',
-        type: NotificationType.review,
-        title: 'Review Baru dari Pembeli',
-        message:
-            'Michael memberikan review untuk Headphone Bluetooth Anda dengan rating 4 bintang.',
-        time: '2 hari yang lalu',
-        isRead: true,
-        actionText: 'Balas Review',
-      ),
-    ];
-  }
-
-  List<NotificationItem> _getBuyerNotifications() {
-    return [
-      NotificationItem(
-        id: '1',
-        type: NotificationType.shipping,
-        title: 'Pesanan Sedang Dikirim',
-        message:
-            'Pesanan #12345 (Sepatu Olahraga) sedang dalam perjalanan. Estimasi tiba: 2 hari.',
-        time: '1 jam yang lalu',
-        isRead: false,
-        actionText: 'Lacak Pesanan',
-      ),
-      NotificationItem(
-        id: '2',
-        type: NotificationType.promotion,
-        title: 'Flash Sale Dimulai!',
-        message:
-            'Diskon hingga 70% untuk kategori Fashion. Buruan sebelum kehabisan!',
-        time: '2 jam yang lalu',
-        isRead: false,
-        actionText: 'Belanja Sekarang',
-      ),
-      NotificationItem(
-        id: '3',
-        type: NotificationType.payment,
-        title: 'Pembayaran Berhasil',
-        message:
-            'Pembayaran untuk pesanan #12344 sebesar Rp 450.000 telah berhasil diproses.',
-        time: '1 hari yang lalu',
-        isRead: true,
-      ),
-      NotificationItem(
-        id: '4',
-        type: NotificationType.order,
-        title: 'Pesanan Dikonfirmasi',
-        message:
-            'Pesanan Anda telah dikonfirmasi penjual dan sedang dipersiapkan untuk pengiriman.',
-        time: '1 hari yang lalu',
-        isRead: true,
-        actionText: 'Lihat Detail',
-      ),
-      NotificationItem(
-        id: '5',
-        type: NotificationType.rating,
-        title: 'Jangan Lupa Beri Rating!',
-        message:
-            'Bagaimana pengalaman belanja Anda? Beri rating dan review untuk produk yang sudah diterima.',
-        time: '3 hari yang lalu',
-        isRead: true,
-        actionText: 'Beri Rating',
-      ),
-      NotificationItem(
-        id: '6',
-        type: NotificationType.system,
-        title: 'Pembaruan Aplikasi',
-        message:
-            'Versi terbaru aplikasi telah tersedia dengan fitur-fitur menarik. Update sekarang!',
-        time: '1 minggu yang lalu',
-        isRead: true,
-        actionText: 'Update',
-      ),
-    ];
-  }
-}
-
-enum NotificationType {
-  purchase,
-  rating,
-  order,
-  promotion,
-  payment,
-  shipping,
-  review,
-  system,
-}
-
-class NotificationItem {
-  final String id;
-  final NotificationType type;
-  final String title;
-  final String message;
-  final String time;
-  bool isRead;
-  final String? actionText;
-
-  NotificationItem({
-    required this.id,
-    required this.type,
-    required this.title,
-    required this.message,
-    required this.time,
-    this.isRead = false,
-    this.actionText,
-  });
 }
