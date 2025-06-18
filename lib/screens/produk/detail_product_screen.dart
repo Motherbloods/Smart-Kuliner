@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
 import 'package:smart/models/product.dart';
+import 'package:smart/models/review.dart';
 import 'package:smart/providers/cart_provider.dart';
 import 'package:smart/screens/cart_screen.dart';
 import 'package:smart/screens/seller_detail_screen.dart';
+import 'package:smart/services/review_service.dart';
+import 'package:smart/widgets/review/review_item.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -23,6 +26,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   int _quantity = 1;
   final CarouselSliderController _carouselController =
       CarouselSliderController();
+
+  // Review Service
+  final ReviewService _reviewService = ReviewService();
+  Map<String, dynamic>? _reviewStats;
 
   // Animation controllers
   late AnimationController _flyingAnimationController;
@@ -44,6 +51,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   @override
   void initState() {
     super.initState();
+    _loadReviewStats();
 
     // Initialize animation controllers
     _flyingAnimationController = AnimationController(
@@ -88,6 +96,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     _scaleAnimationController.dispose();
     _fadeAnimationController.dispose();
     super.dispose();
+  }
+
+  // Load review statistics
+  Future<void> _loadReviewStats() async {
+    try {
+      final stats = await _reviewService.getReviewStatistics(
+        widget.product.id ?? '',
+      );
+      if (mounted) {
+        setState(() {
+          _reviewStats = stats;
+        });
+      }
+    } catch (e) {
+      print('Error loading review stats: $e');
+    }
   }
 
   // Get widget position
@@ -158,6 +182,145 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => CartScreen()),
+    );
+  }
+
+  // Build review summary widget
+  Widget _buildReviewSummary() {
+    if (_reviewStats == null) {
+      return const SizedBox.shrink();
+    }
+
+    final totalReviews = _reviewStats!['totalReviews'] as int;
+    final averageRating = _reviewStats!['averageRating'] as double;
+    final ratingDistribution =
+        _reviewStats!['ratingDistribution'] as Map<int, int>;
+
+    if (totalReviews == 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.rate_review_outlined, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 8),
+            Text(
+              'Belum ada ulasan',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Jadilah yang pertama memberikan ulasan',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Overall Rating
+              Column(
+                children: [
+                  Text(
+                    averageRating.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4DA8DA),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(5, (index) {
+                      return Icon(
+                        index < averageRating.round()
+                            ? Icons.star
+                            : Icons.star_border,
+                        size: 20,
+                        color: Colors.amber,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$totalReviews ulasan',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+
+              const SizedBox(width: 24),
+
+              // Rating Distribution
+              Expanded(
+                child: Column(
+                  children: [
+                    for (int i = 5; i >= 1; i--)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          children: [
+                            Text('$i', style: const TextStyle(fontSize: 12)),
+                            const SizedBox(width: 4),
+                            Icon(Icons.star, size: 12, color: Colors.amber),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: LinearProgressIndicator(
+                                value: totalReviews > 0
+                                    ? (ratingDistribution[i] ?? 0) /
+                                          totalReviews
+                                    : 0,
+                                backgroundColor: Colors.grey[200],
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF4DA8DA),
+                                ),
+                                minHeight: 6,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 24,
+                              child: Text(
+                                '${ratingDistribution[i] ?? 0}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                                textAlign: TextAlign.end,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -386,6 +549,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                               color: Colors.black87,
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '(${_reviewStats?['totalReviews'] ?? 0})',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
                           const SizedBox(width: 16),
                           Text(
                             '${widget.product.sold} Terjual',
@@ -574,6 +745,120 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                             ),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Reviews Section
+                      const Text(
+                        'Ulasan Produk',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Review Summary
+                      _buildReviewSummary(),
+
+                      // Reviews List
+                      StreamBuilder<List<ReviewModel>>(
+                        stream: _reviewService.getProductReviews(
+                          widget.product.id ?? '',
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
+
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(
+                                  'Error: ${snapshot.error}',
+                                  style: TextStyle(color: Colors.red[600]),
+                                ),
+                              ),
+                            );
+                          }
+
+                          final reviews = snapshot.data ?? [];
+
+                          if (reviews.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+
+                          // Show only first 3 reviews in product detail
+                          final displayReviews = reviews.take(3).toList();
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Reviews List
+                              ...displayReviews.map(
+                                (review) => ReviewItem(
+                                  review: review,
+                                  canEdit:
+                                      false, // Users can't edit reviews from product detail
+                                ),
+                              ),
+
+                              // Show More Reviews Button
+                              if (reviews.length > 3)
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        // Navigate to all reviews screen
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/product-reviews',
+                                          arguments: {
+                                            'productId': widget.product.id,
+                                            'productName': widget.product.name,
+                                          },
+                                        );
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(
+                                          0xFF4DA8DA,
+                                        ),
+                                        side: const BorderSide(
+                                          color: Color(0xFF4DA8DA),
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Lihat Semua ${reviews.length} Ulasan',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
