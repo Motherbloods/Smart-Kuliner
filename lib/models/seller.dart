@@ -4,6 +4,7 @@ class SellerModel {
   final String description;
   final String profileImage;
   final String location;
+  String? tokenFCM;
   final double rating;
   final int totalProducts;
   final bool isVerified;
@@ -24,6 +25,7 @@ class SellerModel {
     required this.joinedDate,
     required this.category,
     required this.tags,
+    this.tokenFCM,
   });
 
   factory SellerModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -33,6 +35,7 @@ class SellerModel {
       description: map['description'] ?? '',
       profileImage: map['profileImage'] ?? '',
       location: map['location'] ?? '',
+      tokenFCM: map['tokenFCM'] ?? '',
       rating: (map['rating'] ?? 0.0).toDouble(),
       totalProducts: map['totalProducts'] ?? 0,
       isVerified: map['isVerified'] ?? false,
@@ -50,6 +53,7 @@ class SellerModel {
       'nameToko': nameToko,
       'description': description,
       'profileImage': profileImage,
+      'tokenFCM': tokenFCM,
       'location': location,
       'rating': rating,
       'totalProducts': totalProducts,
@@ -71,6 +75,7 @@ class SellerModel {
     bool? isVerified,
     DateTime? joinedDate,
     String? category,
+    String? tokenFCM,
     List<String>? tags,
   }) {
     return SellerModel(
@@ -84,6 +89,7 @@ class SellerModel {
       isVerified: isVerified ?? this.isVerified,
       joinedDate: joinedDate ?? this.joinedDate,
       category: category ?? this.category,
+      tokenFCM: tokenFCM ?? this.tokenFCM,
       tags: tags ?? this.tags,
     );
   }

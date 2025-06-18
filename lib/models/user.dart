@@ -17,6 +17,7 @@ class UserModel {
   final bool emailVerified;
   final bool phoneVerified;
   final DateTime? lastLoginAt;
+  final String? tokenFCM;
 
   UserModel({
     required this.uid,
@@ -37,6 +38,7 @@ class UserModel {
     this.emailVerified = false,
     this.phoneVerified = false,
     this.lastLoginAt,
+    this.tokenFCM,
   });
 
   // Convert to Map for Firestore
@@ -60,6 +62,7 @@ class UserModel {
       'emailVerified': emailVerified,
       'phoneVerified': phoneVerified,
       'lastLoginAt': lastLoginAt?.toIso8601String(),
+      'tokenFCM': tokenFCM,
     };
   }
 
@@ -82,6 +85,7 @@ class UserModel {
       profileImageUrl: map['profileImageUrl'],
       address: map['address'],
       city: map['city'],
+      tokenFCM: map['tokenFCM'],
       province: map['province'],
       postalCode: map['postalCode'],
       favoriteCategories: List<String>.from(map['favoriteCategories'] ?? []),
@@ -109,6 +113,7 @@ class UserModel {
     String? city,
     String? province,
     String? postalCode,
+    String? tokenFCM,
     List<String>? favoriteCategories,
     bool? emailVerified,
     bool? phoneVerified,
@@ -121,6 +126,7 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
       seller: seller ?? this.seller,
       namaToko: namaToko ?? this.namaToko,
+      tokenFCM: tokenFCM ?? this.tokenFCM,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       gender: gender ?? this.gender,
