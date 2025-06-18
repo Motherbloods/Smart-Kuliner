@@ -59,6 +59,24 @@ class _ContentCardState extends State<ContentCard>
   late Animation<double> _likeAnimation;
 
   @override
+  void didUpdateWidget(ContentCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // PERBAIKAN: Update state saat widget properties berubah
+    if (oldWidget.likes != widget.likes) {
+      _currentLikes = widget.likes ?? 0;
+    }
+
+    if (oldWidget.views != widget.views) {
+      _currentViews = widget.views ?? 0;
+    }
+
+    if (oldWidget.initialLikedState != widget.initialLikedState) {
+      _isLiked = widget.initialLikedState ?? false;
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
     _currentViews = widget.views ?? 0;
@@ -107,16 +125,16 @@ class _ContentCardState extends State<ContentCard>
   void _handleLikeDoubleTap() {
     // Only allow likes for non-owner content
     if (!widget.isOwner && widget.likes != null) {
-      setState(() {
-        if (_isLiked) {
-          // Unlike: decrease likes count
-          _currentLikes = (_currentLikes - 1).clamp(0, double.infinity.toInt());
-          _isLiked = false;
-        } else {
-          // Like: increase likes count
-          _currentLikes++;
-          _isLiked = true;
+      final newLikedState = !_isLiked;
+      final newLikesCount = newLikedState
+          ? _currentLikes + 1
+          : _currentLikes - 1;
 
+      setState(() {
+        _currentLikes = newLikesCount.clamp(0, double.infinity.toInt());
+        _isLiked = newLikedState;
+
+        if (newLikedState) {
           // Play like animation
           _likeAnimationController.forward().then((_) {
             _likeAnimationController.reverse();
@@ -152,100 +170,111 @@ class _ContentCardState extends State<ContentCard>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image
+            // Image with white padding
             Container(
               height: 160,
               width: double.infinity,
+              padding: const EdgeInsets.all(8), // White padding around image
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(12),
                 ),
-                color: Colors.grey[200],
+                color: Colors.white, // White background for padding
               ),
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-                child: Stack(
-                  children: [
-                    Image.network(
-                      widget.imageUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.grey[300],
-                          child: Icon(
-                            widget.category != null
-                                ? Icons.school
-                                : Icons.image,
-                            color: Colors.grey,
-                            size: 40,
-                          ),
-                        );
-                      },
-                    ),
-                    // Category badge (for education content)
-                    if (widget.category != null)
-                      Positioned(
-                        top: 12,
-                        left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4DA8DA),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            widget.category!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
+                borderRadius: BorderRadius.circular(
+                  8,
+                ), // Slightly smaller radius for inner image
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Stack(
+                    children: [
+                      Image.network(
+                        widget.imageUrl,
+                        fit: BoxFit
+                            .contain, // Changed from cover to contain to prevent stretching
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              widget.category != null
+                                  ? Icons.school
+                                  : Icons.image,
+                              color: Colors.grey,
+                              size: 40,
+                            ),
+                          );
+                        },
+                      ),
+                      // Category badge (for education content)
+                      if (widget.category != null)
+                        Positioned(
+                          top: 8, // Adjusted position due to padding
+                          left: 8, // Adjusted position due to padding
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4DA8DA),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              widget.category!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    // Read time badge (for education content)
-                    if (widget.readTime != null)
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.access_time,
-                                color: Colors.white,
-                                size: 12,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${widget.readTime} menit',
-                                style: const TextStyle(
+                      // Read time badge (for education content)
+                      if (widget.readTime != null)
+                        Positioned(
+                          top: 8, // Adjusted position due to padding
+                          right: 8, // Adjusted position due to padding
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.access_time,
                                   color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
+                                  size: 12,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${widget.readTime} menit',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

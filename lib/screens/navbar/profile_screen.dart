@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart/models/order.dart';
 import 'package:smart/screens/navbar/edit_profile_screen.dart';
+import 'package:smart/screens/pesanan_saya_screen.dart';
+import 'package:smart/services/order_service.dart';
 import 'package:smart/utils/date_utils.dart';
 import 'package:smart/utils/snackbar_helper.dart';
 import 'package:smart/widgets/action_button.dart';
@@ -23,6 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   UserModel? _userData;
   final ProductService _productService = ProductService();
+  final OrderService _orderService = OrderService();
   int _productCount = 0;
   final formatted = formatDate(DateTime.now());
 
@@ -337,6 +341,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.purple,
                     ),
 
+                    StreamBuilder<List<OrderModel>>(
+                      stream: _orderService.getBuyerOrders(
+                        _userData!.uid,
+                      ), // Ganti dengan user ID yang sesuai
+                      builder: (context, snapshot) {
+                        print(
+                          '📱 OrderListView - Stream state: ${snapshot.connectionState}',
+                        );
+                        print(
+                          '📱 OrderListView - Has data: ${snapshot.hasData}',
+                        );
+                        print(
+                          '📱 OrderListView - Data length: ${snapshot.data?.length ?? 0}',
+                        );
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircularProgressIndicator(); // Atau shimmer
+                        }
+
+                        if (snapshot.hasError) {
+                          return const Text('Terjadi kesalahan');
+                        }
+
+                        final orders = snapshot.data ?? [];
+
+                        return InfoCard(
+                          icon: Icons.shop,
+                          title: 'Pesanan Saya',
+                          value: _userData?.seller == true
+                              ? '${orders.length} kali order diterima'
+                              : '${orders.length} produk telah dipesan',
+                          color: Colors.purple,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PesananSayaScreen(),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+
                     InfoCard(
                       icon: Icons.person,
                       title: 'Tipe Akun',
@@ -377,34 +426,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       subtitle: 'Ubah informasi profil Anda',
                       onTap: _navigateToEditProfile,
                     ),
-
-                    // ActionButton(
-                    //   icon: Icons.settings,
-                    //   title: 'Pengaturan',
-                    //   subtitle: 'Kelola pengaturan aplikasi',
-                    //   onTap: () {
-                    //     // TODO: Navigate to settings screen
-                    //     SnackbarHelper.showWarningSnackbar(
-                    //       context,
-                    //       'Fitur pengaturan akan segera hadir',
-                    //     );
-                    //   },
-                    // ),
-
-                    // ActionButton(
-                    //   icon: Icons.help_outline,
-                    //   title: 'Bantuan',
-                    //   subtitle: 'Dapatkan bantuan dan dukungan',
-                    //   onTap: () {
-                    //     // TODO: Navigate to help screen
-                    //     SnackbarHelper.showWarningSnackbar(
-                    //       context,
-                    //       'Fitur bantuan akan segera hadir',
-                    //     );
-                    //   },
-                    // ),
-
-                    // const SizedBox(height: 16),
 
                     // Logout Button
                     Container(

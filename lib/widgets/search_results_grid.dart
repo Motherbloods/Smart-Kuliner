@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:smart/models/konten.dart';
 import 'package:smart/models/product.dart';
 import 'package:smart/models/edukasi.dart';
 import 'package:smart/models/seller.dart';
+import 'package:smart/widgets/konten_card.dart';
 import 'package:smart/widgets/search_result_type.dart';
 import 'package:smart/widgets/product_card.dart';
 import 'package:smart/widgets/edukasi_card.dart';
@@ -12,6 +14,7 @@ import 'package:smart/managers/user_manager.dart';
 class SearchResultsGrid extends StatefulWidget {
   final List<ProductModel> products;
   final List<EdukasiModel> edukasiList;
+  final List<KontenModel> konteList;
   final List<SellerModel> sellers;
   final SearchResultType resultType;
   final VoidCallback? onRefresh;
@@ -20,6 +23,7 @@ class SearchResultsGrid extends StatefulWidget {
     Key? key,
     required this.products,
     required this.edukasiList,
+    required this.konteList,
     required this.sellers,
     required this.resultType,
     this.onRefresh,
@@ -35,6 +39,7 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
 
   // Local state for edukasi content and liked status
   late List<EdukasiModel> _localEdukasiList;
+  late List<KontenModel> _localKontenList;
   Set<String> _likedContentIds = {};
   bool _isInitialized = false;
 
@@ -42,6 +47,7 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
   void initState() {
     super.initState();
     _localEdukasiList = List.from(widget.edukasiList);
+    _localKontenList = List.from(widget.konteList);
     _initializeLikedContent();
   }
 
@@ -53,6 +59,11 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
     if (oldWidget.edukasiList != widget.edukasiList) {
       setState(() {
         _localEdukasiList = List.from(widget.edukasiList);
+      });
+    }
+    if (oldWidget.konteList != widget.konteList) {
+      setState(() {
+        _localKontenList = List.from(widget.konteList);
       });
     }
   }
@@ -93,6 +104,18 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
     }
   }
 
+  void _handleKontenContentUpdated(KontenModel updatedContent) {
+    // Update local konten list
+    final index = _localKontenList.indexWhere(
+      (item) => item.id == updatedContent.id,
+    );
+    if (index != -1) {
+      setState(() {
+        _localKontenList[index] = updatedContent;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isEmpty()) {
@@ -115,12 +138,13 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
       case SearchResultType.products:
         return widget.products.isEmpty;
       case SearchResultType.edukasi:
-        return _localEdukasiList.isEmpty;
+        return _localEdukasiList.isEmpty && _localKontenList.isEmpty;
       case SearchResultType.sellers:
         return widget.sellers.isEmpty;
       case SearchResultType.all:
         return widget.products.isEmpty &&
             _localEdukasiList.isEmpty &&
+            _localKontenList.isEmpty &&
             widget.sellers.isEmpty;
     }
   }
@@ -201,16 +225,37 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _localEdukasiList.length,
+      itemCount: _localEdukasiList.length + _localKontenList.length,
       itemBuilder: (context, index) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: EdukasiCard(
-            edukasi: _localEdukasiList[index],
-            likedContentIds: _likedContentIds,
-            onContentUpdated: _handleEdukasiContentUpdated,
-          ),
-        );
+        if (index < _localEdukasiList.length) {
+          // Show Edukasi items first
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: EdukasiCard(
+              edukasi: _localEdukasiList[index],
+              likedContentIds: _likedContentIds,
+              onContentUpdated: _handleEdukasiContentUpdated,
+            ),
+          );
+        } else {
+          // Show Konten items after Edukasi
+          final kontenIndex = index - _localEdukasiList.length;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: KontenCard(
+              konten: _localKontenList[kontenIndex],
+              likedContentIds: _likedContentIds,
+              onContentUpdated: (updatedContent) {
+                // Convert EdukasiModel to KontenModel if needed
+                // This assumes KontenModel and EdukasiModel are compatible
+                // You might need to adjust this based on your actual model structure
+                if (updatedContent is KontenModel) {
+                  _handleKontenContentUpdated(updatedContent);
+                }
+              },
+            ),
+          );
+        }
       },
     );
   }
@@ -232,6 +277,7 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // Products Section
         if (widget.products.isNotEmpty) ...[
           _buildSectionHeader('Produk', widget.products.length),
           const SizedBox(height: 12),
@@ -329,6 +375,56 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
                   ),
                   child: Text(
                     'Lihat ${_localEdukasiList.length - 3} edukasi lainnya',
+                  ),
+                ),
+              ),
+          ],
+          const SizedBox(height: 24),
+        ],
+
+        // Konten Section
+        if (_localKontenList.isNotEmpty) ...[
+          _buildSectionHeader('Konten', _localKontenList.length),
+          const SizedBox(height: 12),
+          if (!_isInitialized)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(color: Color(0xFF4DA8DA)),
+              ),
+            )
+          else ...[
+            ..._localKontenList
+                .take(3)
+                .map(
+                  (konten) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: KontenCard(
+                      konten:
+                          konten, // Assuming KontenModel is compatible with EdukasiCard
+                      likedContentIds: _likedContentIds,
+                      onContentUpdated: (updatedContent) {
+                        // Handle konten update
+                        if (updatedContent is KontenModel) {
+                          _handleKontenContentUpdated(updatedContent);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+            if (_localKontenList.length > 3)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: TextButton(
+                  onPressed: () {
+                    // Navigate to show all konten
+                    // You can implement navigation logic here
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF4DA8DA),
+                  ),
+                  child: Text(
+                    'Lihat ${_localKontenList.length - 3} konten lainnya',
                   ),
                 ),
               ),

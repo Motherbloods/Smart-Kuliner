@@ -244,6 +244,7 @@ class _AllEducationScreenState extends State<AllEducationScreen> {
   // Handle views update using ContentInteractionManager
   Future<void> _handleViewsUpdate(String contentId, int newViewsCount) async {
     final success = await _contentManager.updateContentViews(
+      isEdukasi: true,
       contentId: contentId,
       newViewsCount: newViewsCount,
       context: context,
@@ -270,6 +271,7 @@ class _AllEducationScreenState extends State<AllEducationScreen> {
     if (_userData?.uid == null) return;
 
     final success = await _contentManager.updateContentLikes(
+      isEdukasi: true,
       contentId: contentId,
       newLikesCount: newLikesCount,
       isLiked: isLiked,

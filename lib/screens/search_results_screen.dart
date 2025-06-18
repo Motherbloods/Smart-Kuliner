@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smart/models/konten.dart';
 import 'package:smart/models/product.dart';
 import 'package:smart/models/edukasi.dart';
 import 'package:smart/models/seller.dart';
@@ -25,6 +26,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   // Data
   List<ProductModel> _allProducts = [];
   List<EdukasiModel> _allEdukasi = [];
+  List<KontenModel> _allKonten = [];
   List<SellerModel> _allSellers = [];
 
   // State
@@ -46,7 +48,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     });
 
     int loadedCount = 0;
-    const totalLoaders = 3;
+    const totalLoaders =
+        4; // Updated to 4 since we're loading konten separately
 
     void checkComplete() {
       loadedCount++;
@@ -95,6 +98,24 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       },
     );
 
+    // Load konten (if you have a separate method for konten)
+    // If konten is loaded together with edukasi, you can modify this
+    _searchService.getKonten().listen(
+      (kontenList) {
+        debugPrint('ini adalah konten: ${kontenList.join()}');
+        if (mounted) {
+          setState(() {
+            _allKonten = kontenList;
+          });
+          checkComplete();
+        }
+      },
+      onError: (error) {
+        print('Error loading konten: $error');
+        checkComplete();
+      },
+    );
+
     // Load sellers
     _sellerService.getAllSellers().listen(
       (sellers) {
@@ -131,6 +152,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     return _searchService.filterEdukasi(_allEdukasi, widget.query, _filter);
   }
 
+  List<KontenModel> get _filteredKonten {
+    if (_filter.resultType == SearchResultType.products ||
+        _filter.resultType == SearchResultType.sellers)
+      return [];
+    return _searchService.filterKonten(_allKonten, widget.query, _filter);
+  }
+
   List<SellerModel> get _filteredSellers {
     if (_filter.resultType == SearchResultType.products ||
         _filter.resultType == SearchResultType.edukasi)
@@ -143,12 +171,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       case SearchResultType.products:
         return _filteredProducts.length;
       case SearchResultType.edukasi:
-        return _filteredEdukasi.length;
+        return _filteredEdukasi.length + _filteredKonten.length;
       case SearchResultType.sellers:
         return _filteredSellers.length;
       case SearchResultType.all:
         return _filteredProducts.length +
             _filteredEdukasi.length +
+            _filteredKonten.length +
             _filteredSellers.length;
     }
   }
@@ -156,7 +185,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   Widget build(BuildContext context) {
     print(
-      '${_allSellers.isNotEmpty ? _allSellers[0] : 'List kosong'} halo ini adlaah',
+      '${_allSellers.isNotEmpty ? _allSellers[0] : 'List kosong'} halo ini adalah',
     );
     return Scaffold(
       backgroundColor: Colors.white,
@@ -325,6 +354,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
     return SearchResultsGrid(
       products: _filteredProducts,
+      konteList: _filteredKonten,
       edukasiList: _filteredEdukasi,
       sellers: _filteredSellers,
       resultType: _filter.resultType,

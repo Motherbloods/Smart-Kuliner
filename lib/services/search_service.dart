@@ -1,15 +1,18 @@
 import 'package:smart/models/product.dart';
 import 'package:smart/models/edukasi.dart';
+import 'package:smart/models/konten.dart';
 import 'package:smart/models/search_filter_model.dart';
 import 'package:smart/models/seller.dart';
+import 'package:smart/services/konten_service.dart';
 import 'package:smart/services/product_service.dart';
 import 'package:smart/services/edukasi_service.dart';
 
 class SearchService {
   final ProductService _productService = ProductService();
   final EdukasiService _edukasiService = EdukasiService();
+  final KontenService _kontenService = KontenService();
 
-  // Categories yang sama untuk produk dan edukasi
+  // Categories yang sama untuk produk, edukasi, dan konten
   static const List<String> categories = [
     'Semua',
     'Makanan Utama',
@@ -32,7 +35,8 @@ class SearchService {
     'Semua',
     'Produk',
     'Edukasi',
-    "Seller",
+    'Konten',
+    'Seller',
   ];
 
   // Get products stream
@@ -44,6 +48,12 @@ class SearchService {
   Stream<List<EdukasiModel>> getEdukasi() {
     print('ini kepanggil');
     return Stream.fromFuture(_edukasiService.getPublishedEdukasi());
+  }
+
+  // Get konten stream
+  Stream<List<KontenModel>> getKonten() {
+    print('Loading konten...');
+    return Stream.fromFuture(_kontenService.getPublishedKonten());
   }
 
   // Filter products
@@ -107,6 +117,33 @@ class SearchService {
     return _sortEdukasi(filtered, filter.sortBy);
   }
 
+  // Filter konten
+  List<KontenModel> filterKonten(
+    List<KontenModel> kontenList,
+    String query,
+    SearchFilterModel filter,
+  ) {
+    var filtered = kontenList.where((konten) {
+      // Search filter
+      final matchesSearch =
+          query.isEmpty ||
+          konten.title.toLowerCase().contains(query.toLowerCase()) ||
+          konten.description.toLowerCase().contains(query.toLowerCase()) ||
+          konten.namaToko.toLowerCase().contains(query.toLowerCase()) ||
+          konten.category.toLowerCase().contains(query.toLowerCase());
+
+      // Category filter
+      final matchesCategory =
+          filter.selectedCategory == 'Semua' ||
+          konten.category == filter.selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    }).toList();
+
+    return _sortKonten(filtered, filter.sortBy);
+  }
+
+  // Filter sellers
   static List<SellerModel> filterSellers(
     List<SellerModel> sellers,
     String query,
@@ -156,6 +193,7 @@ class SearchService {
       case 'Rating Tertinggi':
         products.sort((a, b) => b.rating.compareTo(a.rating));
         break;
+
       default: // Terbaru
         products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
@@ -170,7 +208,11 @@ class SearchService {
   ) {
     switch (sortBy) {
       case 'Rating Tertinggi':
-        edukasiList.sort((a, b) => b.likes!.compareTo(a.likes!));
+        edukasiList.sort((a, b) => (b.likes ?? 0).compareTo(a.likes ?? 0));
+        break;
+      case 'Paling Populer':
+        // Asumsi: popularity berdasarkan views atau likes
+        edukasiList.sort((a, b) => (b.views ?? 0).compareTo(a.views ?? 0));
         break;
       default: // Terbaru
         edukasiList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -179,6 +221,24 @@ class SearchService {
     return edukasiList;
   }
 
+  // Sort konten
+  List<KontenModel> _sortKonten(List<KontenModel> kontenList, String sortBy) {
+    switch (sortBy) {
+      case 'Rating Tertinggi':
+        kontenList.sort((a, b) => (b.likes ?? 0).compareTo(a.likes ?? 0));
+        break;
+      case 'Paling Populer':
+        // Asumsi: popularity berdasarkan views atau likes
+        kontenList.sort((a, b) => (b.views ?? 0).compareTo(a.views ?? 0));
+        break;
+      default: // Terbaru
+        kontenList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        break;
+    }
+    return kontenList;
+  }
+
+  // Sort sellers
   static List<SellerModel> _sortSellers(
     List<SellerModel> sellers,
     String sortBy,
@@ -201,5 +261,51 @@ class SearchService {
   double getMaxPrice(List<ProductModel> products) {
     if (products.isEmpty) return 100000;
     return products.map((p) => p.price).reduce((a, b) => a > b ? a : b);
+  }
+
+  // Utility method untuk mendapatkan total hasil berdasarkan tipe
+  int getTotalResults(
+    List<ProductModel> products,
+    List<EdukasiModel> edukasiList,
+    List<KontenModel> kontenList,
+    List<SellerModel> sellers,
+    String resultType,
+  ) {
+    switch (resultType.toLowerCase()) {
+      case 'produk':
+        return products.length;
+      case 'edukasi':
+        return edukasiList.length;
+      case 'konten':
+        return kontenList.length;
+      case 'seller':
+        return sellers.length;
+      default: // 'semua'
+        return products.length +
+            edukasiList.length +
+            kontenList.length +
+            sellers.length;
+    }
+  }
+
+  // Method untuk mendapatkan available sort options berdasarkan result type
+  List<String> getAvailableSortOptions(String resultType) {
+    switch (resultType.toLowerCase()) {
+      case 'produk':
+        return [
+          'Terbaru',
+          'Harga Terendah',
+          'Harga Tertinggi',
+          'Rating Tertinggi',
+          'Paling Populer',
+        ];
+      case 'edukasi':
+      case 'konten':
+        return ['Terbaru', 'Rating Tertinggi', 'Paling Populer'];
+      case 'seller':
+        return ['Terbaru', 'Rating Tertinggi', 'Paling Populer'];
+      default: // 'semua'
+        return sortOptions;
+    }
   }
 }

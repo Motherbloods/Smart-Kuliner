@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:smart/models/seller.dart';
 import 'package:smart/models/product.dart';
-import 'package:smart/screens/produk/detail_product_screen.dart';
-import 'package:smart/widgets/product_card.dart';
 import 'package:smart/widgets/seller/product_grid_widget.dart';
 import 'package:smart/widgets/seller/search_and_filter_widget.dart';
 import 'package:smart/widgets/seller/seller_description_widget.dart';

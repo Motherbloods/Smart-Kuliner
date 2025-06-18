@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:smart/screens/cart_screen.dart';
+import 'package:smart/services/notification_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart'; // Import CartProvider
 import 'beranda_screen.dart';
@@ -31,6 +32,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late List<Widget> _screens;
   late List<BottomNavigationBarItem> _navBarItems;
+  final NotificationService _notificationService = NotificationService();
+  int _unreadNotificationCount = 0;
+
+  void _setupNotificationListener() {
+    final authProvider = context.read<MyAuthProvider>();
+    if (authProvider.currentUser != null) {
+      _notificationService
+          .getUnreadNotificationCount(authProvider.currentUser!.uid)
+          .listen((count) {
+            if (mounted) {
+              setState(() {
+                _unreadNotificationCount = count;
+              });
+            }
+          });
+    }
+  }
 
   @override
   void initState() {
@@ -44,6 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _profileScreen = ProfileScreen();
 
     _initializeScreensAndNavBar();
+    NotificationService().initialize();
+
+    // Setup notification listener setelah initState
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupNotificationListener();
+    });
   }
 
   @override
@@ -51,6 +75,40 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  // Widget untuk membuat icon notifikasi dengan badge
+  Widget _buildNotificationIcon({required bool isActive}) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(isActive ? Icons.notifications : Icons.notifications_outlined),
+        if (_unreadNotificationCount > 0)
+          Positioned(
+            right: -6,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text(
+                _unreadNotificationCount > 99
+                    ? '99+'
+                    : _unreadNotificationCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   void _initializeScreensAndNavBar() {
@@ -66,23 +124,23 @@ class _HomeScreenState extends State<HomeScreen> {
         _profileScreen,
       ];
 
-      _navBarItems = const [
-        BottomNavigationBarItem(
+      _navBarItems = [
+        const BottomNavigationBarItem(
           icon: Icon(Icons.inventory_2_outlined),
           activeIcon: Icon(Icons.inventory_2),
           label: 'Produk Saya',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.campaign_outlined),
           activeIcon: Icon(Icons.campaign),
           label: 'Pusat Promosi',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.notifications_outlined),
-          activeIcon: Icon(Icons.notifications),
+          icon: _buildNotificationIcon(isActive: false),
+          activeIcon: _buildNotificationIcon(isActive: true),
           label: 'Notifikasi',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),
           activeIcon: Icon(Icons.person),
           label: 'Profil',
@@ -97,23 +155,23 @@ class _HomeScreenState extends State<HomeScreen> {
         _profileScreen,
       ];
 
-      _navBarItems = const [
-        BottomNavigationBarItem(
+      _navBarItems = [
+        const BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
           activeIcon: Icon(Icons.home),
           label: 'Beranda',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.search_outlined),
           activeIcon: Icon(Icons.search),
           label: 'Pencarian',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.notifications_outlined),
-          activeIcon: Icon(Icons.notifications),
+          icon: _buildNotificationIcon(isActive: false),
+          activeIcon: _buildNotificationIcon(isActive: true),
           label: 'Notifikasi',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.person_outline),
           activeIcon: Icon(Icons.person),
           label: 'Profil',
@@ -148,85 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ShaderMask(
-                  shaderCallback: (Rect bounds) {
-                    return const LinearGradient(
-                      colors: [Color(0xFFE53935), Color(0xFF4DA8DA)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ).createShader(bounds);
-                  },
-                  child: Text(
-                    'Smart Kuliner',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-                // IKON CART DENGAN COUNTER YANG DINAMIS
-                GestureDetector(
-                  onTap: _navigateToCart,
-                  child: Consumer<CartProvider>(
-                    builder: (context, cartProvider, child) {
-                      return Stack(
-                        children: [
-                          ShaderMask(
-                            shaderCallback: (Rect bounds) {
-                              return const LinearGradient(
-                                colors: [Color(0xFFE53935), Color(0xFF4DA8DA)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ).createShader(bounds);
-                            },
-                            child: const Icon(
-                              Icons.shopping_cart,
-                              size: 28,
-                              color: Colors.white,
-                            ),
-                          ),
-                          if (cartProvider.itemCount > 0)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 18,
-                                  minHeight: 18,
-                                ),
-                                child: Text(
-                                  '${cartProvider.itemCount}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+          appBar: (authProvider.currentUser?.seller ?? false)
+              ? (_selectedIndex == 0
+                    ? _buildAppBar()
+                    : null) // Seller: hanya di Produk Saya
+              : (_selectedIndex == 0 ? _buildAppBar() : null),
           body: GestureDetector(
             onTap: () {
               _searchFocusNode.unfocus();
@@ -265,6 +249,93 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          ShaderMask(
+            shaderCallback: (Rect bounds) {
+              return const LinearGradient(
+                colors: [Color(0xFFE53935), Color(0xFF4DA8DA)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds);
+            },
+            child: Text(
+              'Smart Kuliner',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.white,
+              ),
+            ),
+          ),
+
+          // Hanya tampil jika user biasa (bukan seller)
+          if (!(Provider.of<MyAuthProvider>(
+                context,
+                listen: false,
+              ).currentUser?.seller ??
+              false))
+            GestureDetector(
+              onTap: _navigateToCart,
+              child: Consumer<CartProvider>(
+                builder: (context, cartProvider, child) {
+                  return Stack(
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return const LinearGradient(
+                            colors: [Color(0xFFE53935), Color(0xFF4DA8DA)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ).createShader(bounds);
+                        },
+                        child: const Icon(
+                          Icons.shopping_cart,
+                          size: 28,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (cartProvider.itemCount > 0)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 18,
+                              minHeight: 18,
+                            ),
+                            child: Text(
+                              '${cartProvider.itemCount}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -228,39 +228,33 @@ class _TemplateCardState extends State<TemplateCard>
       _isLoading = true;
     });
 
-    // Start loading animation
     _loadingController.repeat();
 
     try {
       final uri = Uri.parse(widget.link);
 
-      if (await canLaunchUrl(uri)) {
+      // Cek apakah link CapCut
+      final isCapCut = uri.host.contains('capcut://');
+
+      if (isCapCut && await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
 
-        // Call the onTap callback
         widget.onTap();
 
-        // Wait a bit to ensure app switching
         await Future.delayed(const Duration(milliseconds: 500));
-
-        // Start fade out animation
         await _fadeController.forward();
 
-        // Reset everything after fade out
         _loadingController.reset();
         _fadeController.reset();
       } else {
-        print("CapCut app is not installed or cannot open URI scheme");
-        // Show error message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'CapCut app tidak terinstall atau tidak dapat dibuka',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
+        // Kalau bukan CapCut, buka seperti biasa di browser
+        bool launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched) {
+          // Coba buka dalam webview di dalam aplikasi
+          await launchUrl(uri, mode: LaunchMode.inAppWebView);
         }
       }
     } catch (e) {

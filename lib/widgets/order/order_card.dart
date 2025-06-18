@@ -26,21 +26,6 @@ class _OrderCardState extends State<OrderCard> {
   final ReviewService _reviewService = ReviewService();
   final ProductService _productService = ProductService();
 
-  // Method untuk mengupdate sold count ketika order completed
-  Future<void> _updateProductsSoldCount() async {
-    try {
-      for (OrderItem item in widget.order.items) {
-        await _productService.updateProductSoldCount(
-          item.productId,
-          item.quantity,
-        );
-      }
-      print('✅ Products sold count updated successfully');
-    } catch (e) {
-      print('❌ Error updating products sold count: $e');
-    }
-  }
-
   String _formatDate(DateTime date) {
     // Format sesuai kebutuhan
     return '${date.day}/${date.month}/${date.year}';

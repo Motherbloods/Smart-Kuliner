@@ -5,12 +5,14 @@ import 'package:smart/managers/content_interaction_manager.dart';
 import 'package:smart/managers/user_manager.dart';
 
 class EdukasiCard extends StatefulWidget {
+  final bool isEdukasi;
   final EdukasiModel edukasi;
   final Function(EdukasiModel)? onContentUpdated; // Callback untuk update data
   final Set<String>? likedContentIds; // Set of liked content IDs
 
   const EdukasiCard({
     Key? key,
+    this.isEdukasi = true,
     required this.edukasi,
     this.onContentUpdated,
     this.likedContentIds,
@@ -120,6 +122,7 @@ class _EdukasiCardState extends State<EdukasiCard> {
   void _handleViewsChanged(int newViews) async {
     // Update views in Firebase
     final success = await _contentManager.updateContentViews(
+      isEdukasi: true,
       contentId: _currentEdukasi.id!,
       newViewsCount: newViews,
       context: context,
@@ -141,6 +144,7 @@ class _EdukasiCardState extends State<EdukasiCard> {
 
     // Update likes in Firebase
     final success = await _contentManager.updateContentLikes(
+      isEdukasi: true,
       contentId: _currentEdukasi.id!,
       newLikesCount: newLikes,
       isLiked: isLiked,

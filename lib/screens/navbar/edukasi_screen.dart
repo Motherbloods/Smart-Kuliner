@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart/data/dummy_education_templates.dart';
+import 'package:smart/data/dummy_how_to_cook.dart';
 import 'package:smart/models/edukasi.dart';
 import 'package:smart/models/user.dart';
 import 'package:smart/screens/add_video_edukasi.dart';
 import 'package:smart/screens/navbar/edit_edukasi_screen.dart';
+import 'package:smart/screens/cooking_list_screen.dart'; // Import cooking list screen
+import 'package:smart/screens/cooking_detail_screen.dart'; // Import cooking detail screen
 import 'package:smart/utils/snackbar_helper.dart';
 import 'package:smart/widgets/common_components.dart';
 import 'package:smart/widgets/content_card.dart';
-import 'package:smart/widgets/video_overlay.dart'; // Add this import
+import 'package:smart/widgets/cooking/cooking_recipe_horizontal_card.dart';
+import 'package:smart/widgets/video_overlay.dart';
 import '../../providers/auth_provider.dart';
 import "../../models/education_template.dart";
 import "../../services/edukasi_service.dart";
@@ -24,8 +28,8 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
   bool _isLoading = false;
   String _selectedCategory = 'Semua';
   UserModel? _userData;
-  bool _showVideoOverlay = false; // Add this
-  EdukasiModel? _selectedContent; // Add this
+  bool _showVideoOverlay = false;
+  EdukasiModel? _selectedContent;
 
   // Dummy data untuk template edukasi (untuk seller)
   final List<EducationTemplate> _educationTemplates = educationTemplates;
@@ -73,7 +77,6 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
       }
     } catch (e) {
       print('⚠️ Error loading user liked content: $e');
-      // Don't show error to user as this is not critical
     }
   }
 
@@ -186,11 +189,11 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
   // Initialize all data in proper sequence
   Future<void> _initializeData() async {
     await _loadUserData();
-    await _loadUserLikedContent(); // Load user likes first
-    await _loadEducationData(); // Then load education data
+    await _loadUserLikedContent();
+    await _loadEducationData();
   }
 
-  // Show video overlay - Updated method
+  // Show video overlay
   void _showVideoPlayer(EdukasiModel content) {
     setState(() {
       _selectedContent = content;
@@ -198,7 +201,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
     });
   }
 
-  // Hide video overlay - New method
+  // Hide video overlay
   void _hideVideoPlayer() {
     setState(() {
       _showVideoOverlay = false;
@@ -214,31 +217,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
 
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: _showVideoOverlay
-              ? null
-              : AppBar(
-                  backgroundColor: Colors.white,
-                  elevation: 0,
-                  title: const Text(
-                    'Edukasi',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  actions: isSeller
-                      ? [
-                          IconButton(
-                            onPressed: _addNewEducationContent,
-                            icon: const Icon(
-                              Icons.add,
-                              color: Color(0xFF4DA8DA),
-                            ),
-                          ),
-                        ]
-                      : null,
-                ),
+          appBar: null,
           body: Stack(
             children: [
               // Main content
@@ -292,23 +271,51 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Template Section
-          const SectionHeader(
-            title: 'Template Edukasi',
-            subtitle: 'Pilih template untuk membuat konten edukatif',
+          // Template Section Header dengan tombol +
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Template Edukasi',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Pilih template untuk membuat konten edukatif',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+              IconButton(
+                onPressed: _addNewEducationContent,
+                icon: const Icon(Icons.add, color: Color(0xFF4DA8DA)),
+              ),
+            ],
           ),
+
           const SizedBox(height: 16),
           _buildTemplateGrid(),
 
           const SizedBox(height: 32),
 
-          // My Education Content Section
+          // Konten Edukasi Saya
           const SectionHeader(
             title: 'Konten Edukasi Saya',
             subtitle: 'Kelola konten edukasi yang telah Anda buat',
           ),
           const SizedBox(height: 16),
           _buildMyEducationList(),
+          // Cara Memasak Section - NEW
+          _buildCookingSection(),
+
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -328,6 +335,79 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
           _buildPublishedEducationList(),
         ],
       ),
+    );
+  }
+
+  // NEW: Build Cooking Section
+  Widget _buildCookingSection() {
+    // Get first 3 recipes for preview
+    final previewRecipes = dummyCookingRecipes.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header with "Lihat Semua" button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cara Memasak',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Resep masakan lezat untuk Anda coba',
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CookingListScreen(),
+                  ),
+                );
+              },
+              child: const Text(
+                'Lihat Semua',
+                style: TextStyle(
+                  color: Color(0xFF4DA8DA),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // Cooking Recipe List (Preview - 3 items)
+        ...previewRecipes
+            .map(
+              (recipe) => CookingRecipeHorizontalCard(
+                recipe: recipe,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CookingDetailScreen(recipe: recipe),
+                    ),
+                  );
+                },
+              ),
+            )
+            .toList(),
+      ],
     );
   }
 
@@ -388,7 +468,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
                   : false,
               onEdit: () => _editEducationContent(content),
               onDelete: () => _deleteEducationContent(content),
-              onView: () => _showVideoPlayer(content), // Updated this line
+              onView: () => _showVideoPlayer(content),
               onViewsChanged: (newViewsCount) {
                 if (content.id != null) {
                   _handleViewsUpdate(content.id!, newViewsCount);
@@ -442,7 +522,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
               initialLikedState: content.id != null
                   ? _likedContentIds.contains(content.id!)
                   : false,
-              onView: () => _showVideoPlayer(content), // Updated this line
+              onView: () => _showVideoPlayer(content),
               onViewsChanged: (newViewsCount) {
                 if (content.id != null) {
                   _handleViewsUpdate(content.id!, newViewsCount);
@@ -460,7 +540,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
   }
 
   Future<void> _refreshContent() async {
-    await _initializeData(); // Refresh all data including user likes
+    await _initializeData();
   }
 
   void _addNewEducationContent() {
@@ -473,7 +553,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
         ),
       ),
     ).then((_) {
-      _initializeData(); // Refresh data after adding new content
+      _initializeData();
     });
   }
 
@@ -497,7 +577,6 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
         ),
       ),
     ).then((result) {
-      // Refresh data jika edit berhasil
       if (result == true) {
         _initializeData();
       }
@@ -548,7 +627,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
                 }
 
                 await _edukasiService.deleteEdukasi(content.id!);
-                await _initializeData(); // Refresh all data
+                await _initializeData();
 
                 if (mounted) {
                   scaffoldMessenger.hideCurrentSnackBar();
@@ -574,9 +653,5 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
         ],
       ),
     );
-  }
-
-  void _viewEducationContent(EdukasiModel content) {
-    _showVideoPlayer(content); // Use video player instead of snackbar
   }
 }
