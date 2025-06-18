@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart/providers/cart_provider.dart';
+import 'package:smart/screens/checkout_screen.dart';
 import 'package:intl/intl.dart';
 
 class CartScreen extends StatelessWidget {
@@ -402,11 +403,10 @@ class CartScreen extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Implement checkout functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Fitur checkout akan segera hadir!'),
-                        backgroundColor: Color(0xFF4DA8DA),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CheckoutScreen(),
                       ),
                     );
                   },
