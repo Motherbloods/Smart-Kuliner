@@ -1,10 +1,12 @@
 // screens/beranda/beranda_user_view.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart/screens/all_konten_screen.dart';
 import 'package:smart/screens/beranda/beranda_data_manager.dart';
 import 'package:smart/widgets/product_card.dart';
 import 'package:smart/widgets/content_card.dart';
 import 'package:smart/widgets/video_overlay.dart';
+import 'package:smart/widgets/picture_overlay.dart'; // Import PictureOverlay
 import 'package:smart/screens/all_products_screen.dart';
 import 'package:smart/screens/all_education_screen.dart';
 import 'package:smart/providers/auth_provider.dart';
@@ -12,6 +14,7 @@ import 'package:smart/managers/content_interaction_manager.dart';
 import 'package:smart/managers/user_manager.dart';
 import 'package:smart/models/user.dart';
 import 'package:smart/models/edukasi.dart';
+import 'package:smart/models/konten.dart'; // Import KontenModel
 
 class BerandaUserView extends StatefulWidget {
   final BerandaState state;
@@ -32,6 +35,7 @@ class _BerandaUserViewState extends State<BerandaUserView> {
       ContentInteractionManager();
   final UserManager _userManager = UserManager();
   Set<String> _likedContentIds = <String>{};
+  Set<String> _likedKontenIds = <String>{}; // Separate set for konten
   UserModel? _currentUser;
 
   @override
@@ -49,12 +53,18 @@ class _BerandaUserViewState extends State<BerandaUserView> {
 
   Future<void> _loadUserLikedContent() async {
     if (_currentUser?.uid != null) {
-      final likedIds = await _contentInteractionManager.getUserLikedContentIds(
-        _currentUser!.uid,
-      );
+      // Load liked education content
+      final likedEducationIds = await _contentInteractionManager
+          .getUserLikedContentIds(_currentUser!.uid);
+
+      // Load liked konten
+      final likedKontenIds = await _contentInteractionManager
+          .getUserLikedKontenIds(_currentUser!.uid);
+
       if (mounted) {
         setState(() {
-          _likedContentIds = likedIds;
+          _likedContentIds = likedEducationIds;
+          _likedKontenIds = likedKontenIds;
         });
       }
     }
@@ -71,17 +81,14 @@ class _BerandaUserViewState extends State<BerandaUserView> {
       return;
     }
 
-    // Check if this content has video or can be displayed
-    if (education.videoUrl.isEmpty) {
-      if (education.imageUrl.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Konten tidak memiliki video atau gambar'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
+    if (education.videoUrl.isEmpty && education.imageUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Konten tidak memiliki video atau gambar'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
     }
 
     final isLiked = _likedContentIds.contains(education.id);
@@ -103,12 +110,71 @@ class _BerandaUserViewState extends State<BerandaUserView> {
           _handleLikesChanged(education.id!, newLikesCount, isLiked);
         },
       ),
-    );
+    ).then((_) {
+      // PERBAIKAN: Refresh state setelah overlay ditutup
+      if (mounted) {
+        setState(() {
+          // Trigger rebuild untuk memastikan UI terupdate
+        });
+      }
+    });
+  }
+
+  // Method baru untuk menampilkan PictureOverlay untuk konten promosi
+  void _showPicture(KontenModel konten) {
+    if (_currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan login terlebih dahulu'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (konten.imageUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Konten tidak memiliki gambar'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final isLiked = _likedKontenIds.contains(konten.id);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PictureOverlay(
+        content: konten,
+        currentUser: _currentUser,
+        initialLikedState: isLiked,
+        onClose: () {
+          Navigator.of(context).pop();
+        },
+        onViewsChanged: (newViewsCount) {
+          _handleViewsChangedKonten(konten.id!, newViewsCount);
+        },
+        onLikesChanged: (newLikesCount, isLiked) {
+          _handleLikesChangedKonten(konten.id!, newLikesCount, isLiked);
+        },
+      ),
+    ).then((_) {
+      // PERBAIKAN: Refresh state setelah overlay ditutup
+      if (mounted) {
+        setState(() {
+          // Trigger rebuild untuk memastikan UI terupdate
+        });
+      }
+    });
   }
 
   Future<void> _handleViewsChanged(String contentId, int newViewsCount) async {
     // Update views in Firebase
     await _contentInteractionManager.updateContentViews(
+      isEdukasi: true,
       contentId: contentId,
       newViewsCount: newViewsCount,
       context: context,
@@ -127,6 +193,7 @@ class _BerandaUserViewState extends State<BerandaUserView> {
 
     // Update likes in Firebase
     final success = await _contentInteractionManager.updateContentLikes(
+      isEdukasi: true,
       contentId: contentId,
       newLikesCount: newLikesCount,
       isLiked: isLiked,
@@ -135,21 +202,71 @@ class _BerandaUserViewState extends State<BerandaUserView> {
     );
 
     if (success) {
-      // Update local liked content IDs
-      _contentInteractionManager.updateLikedContentIds(
-        likedContentIds: _likedContentIds,
-        contentId: contentId,
-        isLiked: isLiked,
-      );
+      // Update local liked content IDs IMMEDIATELY
+      setState(() {
+        _contentInteractionManager.updateLikedContentIds(
+          likedContentIds: _likedContentIds,
+          contentId: contentId,
+          isLiked: isLiked,
+        );
+      });
 
       // Update local data
       _updateLocalEducationData(contentId, newLikes: newLikesCount);
 
-      if (mounted) {
-        setState(() {
-          // Trigger rebuild to update UI
-        });
-      }
+      print('✅ Education like updated locally: $contentId -> $isLiked');
+    }
+  }
+
+  // Method baru untuk handle views changed untuk konten
+  Future<void> _handleViewsChangedKonten(
+    String contentId,
+    int newViewsCount,
+  ) async {
+    // Update views in Firebase
+    await _contentInteractionManager.updateContentViews(
+      isEdukasi: false,
+      contentId: contentId,
+      newViewsCount: newViewsCount,
+      context: context,
+    );
+
+    // Update local data
+    _updateLocalKontenData(contentId, newViews: newViewsCount);
+  }
+
+  // Method baru untuk handle likes changed untuk konten
+  Future<void> _handleLikesChangedKonten(
+    String contentId,
+    int newLikesCount,
+    bool isLiked,
+  ) async {
+    if (_currentUser?.uid == null) return;
+
+    // Update likes in Firebase
+    final success = await _contentInteractionManager.updateContentLikes(
+      isEdukasi: false,
+      contentId: contentId,
+      newLikesCount: newLikesCount,
+      isLiked: isLiked,
+      userId: _currentUser!.uid,
+      context: context,
+    );
+
+    if (success) {
+      // Update local liked content IDs IMMEDIATELY
+      setState(() {
+        _contentInteractionManager.updateLikedContentIds(
+          likedContentIds: _likedKontenIds,
+          contentId: contentId,
+          isLiked: isLiked,
+        );
+      });
+
+      // Update local data
+      _updateLocalKontenData(contentId, newLikes: newLikesCount);
+
+      print('✅ Konten like updated locally: $contentId -> $isLiked');
     }
   }
 
@@ -169,6 +286,33 @@ class _BerandaUserViewState extends State<BerandaUserView> {
       }
       if (newLikes != null) {
         widget.state.latestEducation[educationIndex].likes = newLikes;
+      }
+
+      if (mounted) {
+        setState(() {
+          // Trigger rebuild to update UI
+        });
+      }
+    }
+  }
+
+  // Method baru untuk update local konten data
+  void _updateLocalKontenData(
+    String contentId, {
+    int? newViews,
+    int? newLikes,
+  }) {
+    // Find and update the konten item in the state
+    final kontenIndex = widget.state.latestKonten.indexWhere(
+      (konten) => konten.id == contentId,
+    );
+
+    if (kontenIndex != -1) {
+      if (newViews != null) {
+        widget.state.latestKonten[kontenIndex].views = newViews;
+      }
+      if (newLikes != null) {
+        widget.state.latestKonten[kontenIndex].likes = newLikes;
       }
 
       if (mounted) {
@@ -309,7 +453,7 @@ class _BerandaUserViewState extends State<BerandaUserView> {
 
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
 
-            // Education List - Now with clickable functionality
+            // Education List - Now with real-time like updates
             if (widget.state.latestEducation.isNotEmpty)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -317,11 +461,15 @@ class _BerandaUserViewState extends State<BerandaUserView> {
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final education = widget.state.latestEducation[index];
                     final isLiked = _likedContentIds.contains(education.id);
+
                     final isOwner = _currentUser?.uid == education.sellerId;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: ContentCard(
+                        key: ValueKey(
+                          'education_${education.id}',
+                        ), // TAMBAHKAN KEY
                         title: education.title,
                         namaToko: education.namaToko,
                         description: education.description,
@@ -336,7 +484,6 @@ class _BerandaUserViewState extends State<BerandaUserView> {
                         contentId: education.id,
                         initialLikedState: isLiked,
                         onView: () {
-                          // Show video overlay when content is tapped
                           _showVideoOverlay(education);
                         },
                         onViewsChanged: (newViewsCount) {
@@ -363,6 +510,105 @@ class _BerandaUserViewState extends State<BerandaUserView> {
                   child: Center(
                     child: Text(
                       'Belum ada konten edukasi',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Konten Promosi',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AllKontenScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Lihat Semua',
+                        style: TextStyle(
+                          color: Color(0xFF4DA8DA),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+
+            // Konten List - Now with real-time like updates
+            if (widget.state.latestKonten.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final konten = widget.state.latestKonten[index];
+                    final isLiked = _likedKontenIds.contains(konten.id);
+                    final isOwner = _currentUser?.uid == konten.sellerId;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: ContentCard(
+                        key: ValueKey('konten_${konten.id}'), // TAMBAHKAN KEY
+                        title: konten.title,
+                        namaToko: konten.namaToko,
+                        description: konten.description,
+                        imageUrl: konten.imageUrl,
+                        category: konten.category,
+                        createdAt: konten.createdAt,
+                        views: konten.views,
+                        likes: konten.likes,
+                        status: konten.status,
+                        isOwner: isOwner,
+                        contentId: konten.id,
+                        initialLikedState: isLiked,
+                        onView: () {
+                          _showPicture(konten);
+                        },
+                        onViewsChanged: (newViewsCount) {
+                          _handleViewsChangedKonten(konten.id!, newViewsCount);
+                        },
+                        onLikesChanged: (newLikesCount, isLiked) {
+                          _handleLikesChangedKonten(
+                            konten.id!,
+                            newLikesCount,
+                            isLiked,
+                          );
+                        },
+                      ),
+                    );
+                  }, childCount: widget.state.latestKonten.length),
+                ),
+              ),
+
+            // Empty state untuk konten
+            if (widget.state.latestKonten.isEmpty)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(
+                    child: Text(
+                      'Belum ada konten promosi',
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ),

@@ -3,8 +3,9 @@ class ContentTemplate {
   final String title;
   final String description;
   final String previewImage;
-  final String link;
   final String category;
+  final String link;
+  final String type;
 
   ContentTemplate({
     required this.id,
@@ -13,5 +14,6 @@ class ContentTemplate {
     required this.link,
     required this.previewImage,
     required this.category,
+    required this.type,
   });
 }

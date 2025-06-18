@@ -1,8 +1,10 @@
 // screens/beranda/beranda_data_manager.dart
 import 'dart:async';
+import 'package:smart/models/konten.dart';
 import 'package:smart/models/product.dart';
 import 'package:smart/models/edukasi.dart';
 import 'package:smart/models/user.dart';
+import 'package:smart/services/konten_service.dart';
 import 'package:smart/services/product_service.dart';
 import 'package:smart/services/edukasi_service.dart';
 
@@ -12,6 +14,7 @@ class BerandaState {
   final List<ProductModel> latestProducts;
   final List<EdukasiModel> latestEducation;
   final List<ProductModel> sellerProducts;
+  final List<KontenModel> latestKonten;
   final String selectedCategory;
 
   BerandaState({
@@ -20,6 +23,7 @@ class BerandaState {
     this.latestProducts = const [],
     this.latestEducation = const [],
     this.sellerProducts = const [],
+    this.latestKonten = const [],
     this.selectedCategory = 'Semua',
   });
 
@@ -28,6 +32,7 @@ class BerandaState {
     String? error,
     List<ProductModel>? latestProducts,
     List<EdukasiModel>? latestEducation,
+    List<KontenModel>? latestKonten,
     List<ProductModel>? sellerProducts,
     String? selectedCategory,
   }) {
@@ -36,6 +41,7 @@ class BerandaState {
       error: error,
       latestProducts: latestProducts ?? this.latestProducts,
       latestEducation: latestEducation ?? this.latestEducation,
+      latestKonten: latestKonten ?? this.latestKonten,
       sellerProducts: sellerProducts ?? this.sellerProducts,
       selectedCategory: selectedCategory ?? this.selectedCategory,
     );
@@ -45,6 +51,7 @@ class BerandaState {
 class BerandaDataManager {
   final ProductService _productService = ProductService();
   final EdukasiService _edukasiService = EdukasiService();
+  final KontenService _kontenService = KontenService();
 
   final StreamController<BerandaState> _stateController =
       StreamController<BerandaState>.broadcast();
@@ -101,6 +108,9 @@ class BerandaDataManager {
     // Load latest education
     _loadLatestEducation();
 
+    // Load latest konten
+    _loadLatestKonten();
+
     _updateState(_currentState.copyWith(isLoading: false));
   }
 
@@ -138,6 +148,15 @@ class BerandaDataManager {
       _updateState(_currentState.copyWith(latestEducation: educationData));
     } catch (e) {
       print('❌ Error loading latest education: $e');
+    }
+  }
+
+  Future<void> _loadLatestKonten() async {
+    try {
+      final snapshot = await _kontenService.getLatestKonten(limit: 3);
+      _updateState(_currentState.copyWith(latestKonten: snapshot));
+    } catch (e) {
+      print('❌ Error loading latest konten: $e');
     }
   }
 

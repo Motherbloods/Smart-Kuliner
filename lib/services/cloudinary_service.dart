@@ -368,6 +368,52 @@ class CloudinaryService {
     }
   }
 
+  // ========== IMAGE VALIDATION METHODS ==========
+
+  // Validate image file
+  bool isValidImageFile(XFile file) {
+    final String extension = file.path.split('.').last.toLowerCase();
+    const List<String> allowedExtensions = [
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'bmp',
+      'webp',
+      'svg',
+    ];
+
+    return allowedExtensions.contains(extension);
+  }
+
+  // Get image file size in MB
+  Future<double> getImageFileSize(XFile imageFile) async {
+    try {
+      final File file = File(imageFile.path);
+      final int fileSizeInBytes = await file.length();
+      final double fileSizeInMB = fileSizeInBytes / (1024 * 1024);
+
+      return fileSizeInMB;
+    } catch (e) {
+      throw Exception('Gagal mendapatkan ukuran file gambar: $e');
+    }
+  }
+
+  // Validate image file size (default max 10MB for images)
+  Future<bool> isValidImageSize(
+    XFile imageFile, {
+    double maxSizeMB = 10.0,
+  }) async {
+    try {
+      final double fileSizeMB = await getImageFileSize(imageFile);
+      return fileSizeMB <= maxSizeMB;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ========== VIDEO VALIDATION METHODS ==========
+
   // Validate video file
   bool isValidVideoFile(XFile file) {
     final String extension = file.path.split('.').last.toLowerCase();
