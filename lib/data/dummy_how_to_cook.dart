@@ -1,47 +1,6 @@
-// data/dummy_cooking_recipes.dart
-class CookingRecipe {
-  final String id;
-  final String title;
-  final String description;
-  final String imageUrl;
-  final String difficulty;
-  final int duration; // dalam menit
-  final int servings;
-  final List<String> ingredients;
-  final List<CookingStep> steps;
-  final String category;
-  final double rating;
-  final int reviewCount;
-
-  CookingRecipe({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.imageUrl,
-    required this.difficulty,
-    required this.duration,
-    required this.servings,
-    required this.ingredients,
-    required this.steps,
-    required this.category,
-    required this.rating,
-    required this.reviewCount,
-  });
-}
-
-class CookingStep {
-  final int stepNumber;
-  final String instruction;
-  final String? imageUrl;
-
-  CookingStep({
-    required this.stepNumber,
-    required this.instruction,
-    this.imageUrl,
-  });
-}
-
 // Dummy data untuk resep masakan
+import 'package:smart/models/recipe.dart';
+
 final List<CookingRecipe> dummyCookingRecipes = [
   CookingRecipe(
     id: '1',

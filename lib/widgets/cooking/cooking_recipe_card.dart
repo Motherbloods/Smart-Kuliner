@@ -1,6 +1,6 @@
 // widgets/cooking_recipe_card.dart
 import 'package:flutter/material.dart';
-import 'package:smart/data/dummy_how_to_cook.dart';
+import 'package:smart/models/recipe.dart';
 
 class CookingRecipeCard extends StatelessWidget {
   final CookingRecipe recipe;
@@ -116,27 +116,6 @@ class CookingRecipeCard extends StatelessWidget {
                             const SizedBox(width: 2),
                             Text(
                               '${recipe.duration} min',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(width: 8),
-
-                        // Rating
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              size: 12,
-                              color: Colors.amber,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              recipe.rating.toString(),
                               style: const TextStyle(
                                 fontSize: 10,
                                 color: Colors.grey,

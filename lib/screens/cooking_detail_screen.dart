@@ -1,6 +1,6 @@
 // screens/cooking_detail_screen.dart
 import 'package:flutter/material.dart';
-import 'package:smart/data/dummy_how_to_cook.dart';
+import 'package:smart/models/recipe.dart';
 
 class CookingDetailScreen extends StatefulWidget {
   final CookingRecipe recipe;
