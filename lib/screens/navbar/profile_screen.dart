@@ -342,9 +342,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
 
                     StreamBuilder<List<OrderModel>>(
-                      stream: _orderService.getBuyerOrders(
-                        _userData!.uid,
-                      ), // Ganti dengan user ID yang sesuai
+                      stream: (_userData?.seller == true)
+                          ? _orderService.getSellerOrders(_userData!.uid)
+                          : _orderService.getBuyerOrders(_userData!.uid),
                       builder: (context, snapshot) {
                         print(
                           '📱 OrderListView - Stream state: ${snapshot.connectionState}',
