@@ -5,6 +5,7 @@ import 'package:smart/models/edukasi.dart';
 import 'package:smart/models/recipe.dart';
 import 'package:smart/models/seller.dart';
 import 'package:smart/screens/all_education_screen.dart';
+import 'package:smart/screens/all_sellers_screen.dart';
 import 'package:smart/screens/all_konten_screen.dart';
 import 'package:smart/screens/cooking_detail_screen.dart';
 import 'package:smart/screens/cooking_list_screen.dart';
@@ -400,12 +401,11 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: TextButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Fitur akan segera hadir!'),
-                      duration: Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: Color(0xFF4DA8DA),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          AllSellersScreen(sellers: widget.sellers),
                     ),
                   );
                 },
