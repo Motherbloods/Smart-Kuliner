@@ -99,8 +99,9 @@ class OrderModel {
       paymentMethod: map['paymentMethod'] ?? '',
       shippingAddress: map['shippingAddress'] ?? '',
       notes: map['notes'] ?? '',
-      latitude: map['latitude'] ?? '',
-      longitude: map['longitude'] ?? '',
+      // ✅ PERBAIKAN: Parse latitude dan longitude dengan benar
+      latitude: _parseDouble(map['latitude']),
+      longitude: _parseDouble(map['longitude']),
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: DateTime.parse(map['updatedAt']),
       confirmedAt: map['confirmedAt'] != null
@@ -123,6 +124,19 @@ class OrderModel {
           : null,
     );
   }
+
+  // ✅ TAMBAHAN: Helper method untuk parsing double
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      if (value.isEmpty) return null;
+      return double.tryParse(value);
+    }
+    return null;
+  }
+
   String get statusText {
     switch (status) {
       case OrderStatus.pending:
