@@ -1,25 +1,29 @@
 import 'package:smart/models/product.dart';
 import 'package:smart/models/edukasi.dart';
 import 'package:smart/models/konten.dart';
+import 'package:smart/models/recipe.dart';
 import 'package:smart/models/search_filter_model.dart';
 import 'package:smart/models/seller.dart';
 import 'package:smart/services/konten_service.dart';
 import 'package:smart/services/product_service.dart';
 import 'package:smart/services/edukasi_service.dart';
+import 'package:smart/services/recipe_service.dart';
 
 class SearchService {
   final ProductService _productService = ProductService();
   final EdukasiService _edukasiService = EdukasiService();
   final KontenService _kontenService = KontenService();
+  final RecipeService _recipeService = RecipeService();
 
-  // Categories yang sama untuk produk, edukasi, dan konten
+  // Categories yang sama untuk produk, edukasi, konten, dan recipe
   static const List<String> categories = [
     'Semua',
     'Makanan Utama',
     'Cemilan',
     'Minuman',
-    'Makanan Sehat',
     'Dessert',
+    'Makanan Sehat',
+    'Makanan Tradisional',
     'Lainnya',
   ];
 
@@ -29,6 +33,8 @@ class SearchService {
     'Harga Tertinggi',
     'Rating Tertinggi',
     'Paling Populer',
+    'Waktu Tercepat',
+    'Difficulty Terendah',
   ];
 
   static const List<String> resultTypeOptions = [
@@ -36,6 +42,7 @@ class SearchService {
     'Produk',
     'Edukasi',
     'Konten',
+    'Recipe',
     'Seller',
   ];
 
@@ -46,7 +53,7 @@ class SearchService {
 
   // Get edukasi stream
   Stream<List<EdukasiModel>> getEdukasi() {
-    print('ini kepanggil');
+    print('Loading edukasi...');
     return Stream.fromFuture(_edukasiService.getPublishedEdukasi());
   }
 
@@ -54,6 +61,12 @@ class SearchService {
   Stream<List<KontenModel>> getKonten() {
     print('Loading konten...');
     return Stream.fromFuture(_kontenService.getPublishedKonten());
+  }
+
+  // Get recipe stream
+  Stream<List<CookingRecipe>> getRecipe() {
+    print('Loading recipes...');
+    return _recipeService.getAllActiveRecipes();
   }
 
   // Filter products
@@ -193,7 +206,6 @@ class SearchService {
       case 'Rating Tertinggi':
         products.sort((a, b) => b.rating.compareTo(a.rating));
         break;
-
       default: // Terbaru
         products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
         break;
@@ -268,6 +280,7 @@ class SearchService {
     List<ProductModel> products,
     List<EdukasiModel> edukasiList,
     List<KontenModel> kontenList,
+    List<CookingRecipe> recipes,
     List<SellerModel> sellers,
     String resultType,
   ) {
@@ -278,12 +291,15 @@ class SearchService {
         return edukasiList.length;
       case 'konten':
         return kontenList.length;
+      case 'recipe':
+        return recipes.length;
       case 'seller':
         return sellers.length;
       default: // 'semua'
         return products.length +
             edukasiList.length +
             kontenList.length +
+            recipes.length +
             sellers.length;
     }
   }
@@ -302,10 +318,86 @@ class SearchService {
       case 'edukasi':
       case 'konten':
         return ['Terbaru', 'Rating Tertinggi', 'Paling Populer'];
+      case 'recipe':
+        return [
+          'Terbaru',
+          'Rating Tertinggi',
+          'Paling Populer',
+          'Waktu Tercepat',
+          'Difficulty Terendah',
+        ];
       case 'seller':
         return ['Terbaru', 'Rating Tertinggi', 'Paling Populer'];
       default: // 'semua'
         return sortOptions;
     }
+  }
+
+  List<CookingRecipe> filterRecipes(
+    List<CookingRecipe> recipes,
+    String query,
+    SearchFilterModel filter,
+  ) {
+    var filtered = recipes.where((recipe) {
+      // Search filter
+      final matchesSearch =
+          query.isEmpty ||
+          recipe.title.toLowerCase().contains(query.toLowerCase()) ||
+          recipe.description.toLowerCase().contains(query.toLowerCase()) ||
+          recipe.category.toLowerCase().contains(query.toLowerCase()) ||
+          recipe.ingredients.any(
+            (ingredient) =>
+                ingredient.toLowerCase().contains(query.toLowerCase()),
+          );
+
+      // Category filter
+      final matchesCategory =
+          filter.selectedCategory == 'Semua' ||
+          recipe.category == filter.selectedCategory;
+
+      // Difficulty filter (if you want to add difficulty filtering)
+      // You can add this to SearchFilterModel if needed
+      // final matchesDifficulty = filter.maxDifficulty == null ||
+      //     recipe.difficulty <= filter.maxDifficulty;
+
+      return matchesSearch && matchesCategory;
+    }).toList();
+
+    return _sortRecipes(filtered, filter.sortBy);
+  }
+
+  List<CookingRecipe> _sortRecipes(List<CookingRecipe> recipes, String sortBy) {
+    switch (sortBy) {
+      case 'Rating Tertinggi':
+        recipes.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+        break;
+      case 'Difficulty Terendah':
+        recipes.sort((a, b) => a.difficulty.compareTo(b.difficulty));
+        break;
+      default: // Terbaru
+        recipes.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
+        break;
+    }
+    return recipes;
+  }
+
+  // Method untuk search recipe berdasarkan kategori
+  Stream<List<CookingRecipe>> getRecipesByCategory(String category) {
+    return _recipeService.getRecipesByCategory(category);
+  }
+
+  // Method untuk search recipe berdasarkan user
+  Stream<List<CookingRecipe>> getUserRecipes(String userId) {
+    return _recipeService.getUserRecipes(userId);
+  }
+
+  // Method untuk mendapatkan latest recipes
+  Stream<List<CookingRecipe>> getLatestRecipes({int limit = 10}) {
+    return _recipeService.getLatestRecipes(limit: limit);
+  }
+
+  // Method untuk search recipes menggunakan built-in search dari RecipeService
+  Future<List<CookingRecipe>> searchRecipes(String query) async {
+    return await _recipeService.searchRecipes(query);
   }
 }

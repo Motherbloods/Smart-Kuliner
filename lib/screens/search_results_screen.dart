@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:smart/models/konten.dart';
 import 'package:smart/models/product.dart';
 import 'package:smart/models/edukasi.dart';
+import 'package:smart/models/recipe.dart';
 import 'package:smart/models/seller.dart';
 import 'package:smart/models/search_filter_model.dart';
 import 'package:smart/services/search_service.dart';
@@ -28,6 +29,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   List<EdukasiModel> _allEdukasi = [];
   List<KontenModel> _allKonten = [];
   List<SellerModel> _allSellers = [];
+  List<CookingRecipe> _allCookingRecipes = [];
 
   // State
   bool _isLoading = true;
@@ -48,8 +50,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     });
 
     int loadedCount = 0;
-    const totalLoaders =
-        4; // Updated to 4 since we're loading konten separately
+    const totalLoaders = 5; // Updated to 5 to include cooking recipes
 
     void checkComplete() {
       loadedCount++;
@@ -84,7 +85,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     // Load edukasi
     _searchService.getEdukasi().listen(
       (edukasiList) {
-        debugPrint('ini adalah edukasi: ${edukasiList.join()}');
+        debugPrint('ini adalah edukasi: ${edukasiList.length} items');
         if (mounted) {
           setState(() {
             _allEdukasi = edukasiList;
@@ -98,11 +99,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       },
     );
 
-    // Load konten (if you have a separate method for konten)
-    // If konten is loaded together with edukasi, you can modify this
+    // Load konten
     _searchService.getKonten().listen(
       (kontenList) {
-        debugPrint('ini adalah konten: ${kontenList.join()}');
+        debugPrint('ini adalah konten: ${kontenList.length} items');
         if (mounted) {
           setState(() {
             _allKonten = kontenList;
@@ -112,6 +112,23 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       },
       onError: (error) {
         print('Error loading konten: $error');
+        checkComplete();
+      },
+    );
+
+    // Load cooking recipes
+    _searchService.getRecipe().listen(
+      (recipes) {
+        debugPrint('ini adalah cooking recipes: ${recipes.toString()} items');
+        if (mounted) {
+          setState(() {
+            _allCookingRecipes = recipes;
+          });
+          checkComplete();
+        }
+      },
+      onError: (error) {
+        print('Error loading cooking recipes: $error');
         checkComplete();
       },
     );
@@ -140,28 +157,44 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   List<ProductModel> get _filteredProducts {
     if (_filter.resultType == SearchResultType.edukasi ||
-        _filter.resultType == SearchResultType.sellers)
+        _filter.resultType == SearchResultType.sellers ||
+        _filter.resultType == SearchResultType.recipes)
       return [];
     return _searchService.filterProducts(_allProducts, widget.query, _filter);
   }
 
   List<EdukasiModel> get _filteredEdukasi {
     if (_filter.resultType == SearchResultType.products ||
-        _filter.resultType == SearchResultType.sellers)
+        _filter.resultType == SearchResultType.sellers ||
+        _filter.resultType == SearchResultType.recipes)
       return [];
     return _searchService.filterEdukasi(_allEdukasi, widget.query, _filter);
   }
 
   List<KontenModel> get _filteredKonten {
     if (_filter.resultType == SearchResultType.products ||
-        _filter.resultType == SearchResultType.sellers)
+        _filter.resultType == SearchResultType.sellers ||
+        _filter.resultType == SearchResultType.recipes)
       return [];
     return _searchService.filterKonten(_allKonten, widget.query, _filter);
   }
 
+  List<CookingRecipe> get _filteredCookingRecipes {
+    if (_filter.resultType == SearchResultType.products ||
+        _filter.resultType == SearchResultType.edukasi ||
+        _filter.resultType == SearchResultType.sellers)
+      return [];
+    return _searchService.filterRecipes(
+      _allCookingRecipes,
+      widget.query,
+      _filter,
+    );
+  }
+
   List<SellerModel> get _filteredSellers {
     if (_filter.resultType == SearchResultType.products ||
-        _filter.resultType == SearchResultType.edukasi)
+        _filter.resultType == SearchResultType.edukasi ||
+        _filter.resultType == SearchResultType.recipes)
       return [];
     return SearchService.filterSellers(_allSellers, widget.query, _filter);
   }
@@ -172,12 +205,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         return _filteredProducts.length;
       case SearchResultType.edukasi:
         return _filteredEdukasi.length + _filteredKonten.length;
+      case SearchResultType.recipes:
+        return _filteredCookingRecipes.length;
       case SearchResultType.sellers:
         return _filteredSellers.length;
       case SearchResultType.all:
         return _filteredProducts.length +
             _filteredEdukasi.length +
             _filteredKonten.length +
+            _filteredCookingRecipes.length +
             _filteredSellers.length;
     }
   }
@@ -356,6 +392,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       products: _filteredProducts,
       konteList: _filteredKonten,
       edukasiList: _filteredEdukasi,
+      recipes: _filteredCookingRecipes, // Added cooking recipes
       sellers: _filteredSellers,
       resultType: _filter.resultType,
       onRefresh: _loadData,
@@ -415,6 +452,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         ];
       case SearchResultType.edukasi:
         return ['Terbaru', 'Rating Tertinggi'];
+      case SearchResultType.recipes:
+        return [
+          'Terbaru',
+          'Rating Tertinggi',
+          'Paling Populer',
+          'Waktu Tercepat',
+          'Difficulty Terendah',
+        ];
       case SearchResultType.sellers:
         return ['Terbaru', 'Rating Tertinggi', 'Paling Populer'];
       case SearchResultType.all:

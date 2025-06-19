@@ -11,7 +11,7 @@ import 'package:smart/screens/cooking_detail_screen.dart'; // Import cooking det
 import 'package:smart/utils/snackbar_helper.dart';
 import 'package:smart/widgets/common_components.dart';
 import 'package:smart/widgets/content_card.dart';
-import 'package:smart/widgets/cooking/cooking_recipe_horizontal_card.dart';
+import 'package:smart/widgets/cooking/cooking_recipe_card.dart';
 import 'package:smart/widgets/video_overlay.dart';
 import '../../providers/auth_provider.dart';
 import "../../models/education_template.dart";
@@ -373,7 +373,8 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CookingListScreen(),
+                    builder: (context) =>
+                        CookingListScreen(isSeller: _userData!.seller),
                   ),
                 );
               },
@@ -394,7 +395,7 @@ class _EdukasiScreenState extends State<EdukasiScreen> {
         // Cooking Recipe List (Preview - 3 items)
         ...previewRecipes
             .map(
-              (recipe) => CookingRecipeHorizontalCard(
+              (recipe) => CookingRecipeCard(
                 recipe: recipe,
                 onTap: () {
                   Navigator.push(

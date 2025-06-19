@@ -312,6 +312,8 @@ class SearchFilterWidget extends StatelessWidget {
         return 'Produk';
       case SearchResultType.edukasi:
         return 'Edukasi';
+      case SearchResultType.recipes:
+        return 'Recipe';
       case SearchResultType.sellers:
         return 'Toko';
     }

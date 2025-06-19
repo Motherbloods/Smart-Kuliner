@@ -1,1 +1,1 @@
-enum SearchResultType { products, edukasi, sellers, all }
+enum SearchResultType { products, edukasi, sellers, recipes, all }

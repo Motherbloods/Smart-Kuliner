@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:smart/models/konten.dart';
 import 'package:smart/models/product.dart';
 import 'package:smart/models/edukasi.dart';
+import 'package:smart/models/recipe.dart';
 import 'package:smart/models/seller.dart';
+import 'package:smart/screens/all_education_screen.dart';
+import 'package:smart/screens/all_konten_screen.dart';
+import 'package:smart/screens/cooking_detail_screen.dart';
+import 'package:smart/screens/cooking_list_screen.dart';
+import 'package:smart/widgets/cooking/cooking_recipe_card.dart';
 import 'package:smart/widgets/konten_card.dart';
 import 'package:smart/widgets/search_result_type.dart';
 import 'package:smart/widgets/product_card.dart';
@@ -16,6 +22,7 @@ class SearchResultsGrid extends StatefulWidget {
   final List<EdukasiModel> edukasiList;
   final List<KontenModel> konteList;
   final List<SellerModel> sellers;
+  final List<CookingRecipe> recipes;
   final SearchResultType resultType;
   final VoidCallback? onRefresh;
 
@@ -25,6 +32,7 @@ class SearchResultsGrid extends StatefulWidget {
     required this.edukasiList,
     required this.konteList,
     required this.sellers,
+    required this.recipes,
     required this.resultType,
     this.onRefresh,
   }) : super(key: key);
@@ -141,11 +149,14 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
         return _localEdukasiList.isEmpty && _localKontenList.isEmpty;
       case SearchResultType.sellers:
         return widget.sellers.isEmpty;
+      case SearchResultType.recipes:
+        return widget.recipes.isEmpty;
       case SearchResultType.all:
         return widget.products.isEmpty &&
             _localEdukasiList.isEmpty &&
             _localKontenList.isEmpty &&
-            widget.sellers.isEmpty;
+            widget.sellers.isEmpty &&
+            widget.recipes.isEmpty;
     }
   }
 
@@ -195,9 +206,32 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
         return _buildEdukasiGrid();
       case SearchResultType.sellers:
         return _buildSellersGrid();
+      case SearchResultType.recipes:
+        return _buildRecipesGrid();
       case SearchResultType.all:
         return _buildAllResultsGrid();
     }
+  }
+
+  Widget _buildRecipesGrid() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: widget.recipes.length,
+      itemBuilder: (context, index) {
+        return CookingRecipeCard(
+          recipe: widget.recipes[index],
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    CookingDetailScreen(recipe: widget.recipes[index]),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildProductsGrid() {
@@ -309,6 +343,46 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
           const SizedBox(height: 24),
         ],
 
+        //recipes
+        if (widget.recipes.isNotEmpty) ...[
+          _buildSectionHeader('Resep', widget.recipes.length),
+          const SizedBox(height: 12),
+          ...widget.recipes
+              .take(3)
+              .map(
+                (recipe) => CookingRecipeCard(
+                  recipe: recipe,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AllEducationScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          if (widget.recipes.length > 3)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CookingListScreen(isSeller: false),
+                    ),
+                  );
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF4DA8DA),
+                ),
+                child: Text('Lihat ${widget.recipes.length - 3} resep lainnya'),
+              ),
+            ),
+          const SizedBox(height: 24),
+        ],
+
         // Sellers Section
         if (widget.sellers.isNotEmpty) ...[
           _buildSectionHeader('Toko', widget.sellers.length),
@@ -326,8 +400,14 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: TextButton(
                 onPressed: () {
-                  // Navigate to show all sellers
-                  // You can implement navigation logic here
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Fitur akan segera hadir!'),
+                      duration: Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: Color(0xFF4DA8DA),
+                    ),
+                  );
                 },
                 style: TextButton.styleFrom(
                   foregroundColor: const Color(0xFF4DA8DA),
@@ -367,8 +447,12 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: TextButton(
                   onPressed: () {
-                    // Navigate to show all edukasi
-                    // You can implement navigation logic here
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AllEducationScreen(),
+                      ),
+                    );
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF4DA8DA),
@@ -417,8 +501,12 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: TextButton(
                   onPressed: () {
-                    // Navigate to show all konten
-                    // You can implement navigation logic here
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AllKontenScreen(),
+                      ),
+                    );
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF4DA8DA),
