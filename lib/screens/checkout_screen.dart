@@ -9,6 +9,7 @@ import 'package:smart/screens/pesanan_saya_screen.dart';
 import 'package:smart/services/order_service_all.dart';
 import 'package:smart/models/order.dart';
 import 'package:intl/intl.dart';
+import 'package:smart/widgets/maps/maps_picker.dart';
 import 'package:smart/widgets/order/address_section.dart';
 import 'package:smart/widgets/order/bottom_checkout_button.dart';
 import 'package:smart/widgets/order/payment_method_section.dart';
@@ -18,6 +19,8 @@ import 'package:smart/widgets/order/payment_summary_section.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:async';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({Key? key}) : super(key: key);
@@ -34,6 +37,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _selectedPaymentMethod = 'COD';
   bool _isLoading = false;
   bool _isLoadingLocation = false;
+  bool _isLoadingMap = false; // Tambahan untuk loading map
   double? _currentLatitude;
   double? _currentLongitude;
 
@@ -200,7 +204,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.edit_location, color: Colors.green),
+                leading: const Icon(Icons.map, color: Colors.green),
+                title: const Text('Pilih di Peta'),
+                subtitle: const Text('Pilih lokasi melalui Google Maps'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openMapPicker();
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.edit_location, color: Colors.orange),
                 title: const Text('Input Manual'),
                 subtitle: const Text('Ketik alamat secara manual'),
                 onTap: () {
@@ -213,6 +227,78 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       },
     );
+  }
+
+  // Open Google Maps picker with loading
+  Future<void> _openMapPicker() async {
+    setState(() {
+      _isLoadingMap = true;
+    });
+
+    try {
+      final hasPermission = await _handleLocationPermission();
+      if (!hasPermission) {
+        setState(() {
+          _isLoadingMap = false;
+        });
+        return;
+      }
+
+      // Get current location or use default location (Jakarta)
+      LatLng initialLocation = const LatLng(
+        -6.2088,
+        106.8456,
+      ); // Jakarta default
+
+      if (_currentLatitude != null && _currentLongitude != null) {
+        initialLocation = LatLng(_currentLatitude!, _currentLongitude!);
+      } else {
+        try {
+          Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.medium,
+          );
+          initialLocation = LatLng(position.latitude, position.longitude);
+        } catch (e) {
+          // Use default location if can't get current position
+        }
+      }
+
+      final result = await Navigator.push<Map<String, dynamic>>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapPickerScreen(
+            initialLocation: initialLocation,
+            currentAddress: _alamatController.text,
+          ),
+        ),
+      );
+
+      if (result != null) {
+        setState(() {
+          _currentLatitude = result['latitude'];
+          _currentLongitude = result['longitude'];
+          _alamatController.text = result['address'];
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Lokasi berhasil dipilih dari peta!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal membuka peta: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingMap = false;
+      });
+    }
   }
 
   // Show manual address input dialog
@@ -270,40 +356,71 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Consumer2<CartProvider, MyAuthProvider>(
-        builder: (context, cartProvider, authProvider, child) {
-          if (cartProvider.itemCount == 0) {
-            return const Center(child: Text('Tidak ada item untuk checkout'));
-          }
+      body: Stack(
+        children: [
+          Consumer2<CartProvider, MyAuthProvider>(
+            builder: (context, cartProvider, authProvider, child) {
+              if (cartProvider.itemCount == 0) {
+                return const Center(
+                  child: Text('Tidak ada item untuk checkout'),
+                );
+              }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Alamat Pengiriman dengan Geolocation
-                _buildAddressSection(),
-                const SizedBox(height: 16),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Alamat Pengiriman dengan Geolocation
+                    _buildAddressSection(),
+                    const SizedBox(height: 16),
 
-                // Daftar Produk
-                ProductListSection(),
-                const SizedBox(height: 16),
+                    // Daftar Produk
+                    ProductListSection(),
+                    const SizedBox(height: 16),
 
-                // Metode Pembayaran
-                PaymentMethodSection(),
-                const SizedBox(height: 16),
+                    // Metode Pembayaran
+                    PaymentMethodSection(),
+                    const SizedBox(height: 16),
 
-                // Catatan
-                NoteSection(controller: _catatanController),
-                const SizedBox(height: 16),
+                    // Catatan
+                    NoteSection(controller: _catatanController),
+                    const SizedBox(height: 16),
 
-                // Ringkasan Pembayaran
-                PaymentSummarySection(),
-                const SizedBox(height: 100), // Space for bottom button
-              ],
+                    // Ringkasan Pembayaran
+                    PaymentSummarySection(),
+                    const SizedBox(height: 100), // Space for bottom button
+                  ],
+                ),
+              );
+            },
+          ),
+          // Loading overlay untuk map
+          if (_isLoadingMap)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Memuat Peta...', style: TextStyle(fontSize: 16)),
+                        SizedBox(height: 8),
+                        Text(
+                          'Harap tunggu sebentar',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-          );
-        },
+        ],
       ),
       bottomNavigationBar: BottomCheckoutButton(
         isLoading: _isLoading,
@@ -340,17 +457,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
-              if (_isLoadingLocation)
+              if (_isLoadingLocation || _isLoadingMap)
                 const SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else
-                IconButton(
-                  onPressed: _showLocationPicker,
-                  icon: const Icon(Icons.add_location_alt, color: Colors.blue),
-                  tooltip: 'Pilih Lokasi',
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _isLoadingMap ? null : _openMapPicker,
+                      icon: const Icon(Icons.map, color: Colors.green),
+                      tooltip: 'Pilih di Peta',
+                    ),
+                    IconButton(
+                      onPressed: _isLoadingMap ? null : _showLocationPicker,
+                      icon: const Icon(Icons.more_vert, color: Colors.grey),
+                      tooltip: 'Opsi Lainnya',
+                    ),
+                  ],
                 ),
             ],
           ),
@@ -374,18 +500,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               ),
               contentPadding: const EdgeInsets.all(12),
               suffixIcon: IconButton(
-                onPressed: _showLocationPicker,
-                icon: const Icon(Icons.location_searching, color: Colors.blue),
-                tooltip: 'Pilih Lokasi',
+                onPressed: _isLoadingMap ? null : _openMapPicker,
+                icon: _isLoadingMap
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.map, color: Colors.green),
+                tooltip: 'Pilih di Peta',
               ),
             ),
           ),
           if (_currentLatitude != null && _currentLongitude != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Koordinat: ${_currentLatitude!.toStringAsFixed(6)}, ${_currentLongitude!.toStringAsFixed(6)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              child: Row(
+                children: [
+                  Icon(Icons.gps_fixed, size: 14, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Koordinat: ${_currentLatitude!.toStringAsFixed(6)}, ${_currentLongitude!.toStringAsFixed(6)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
         ],
