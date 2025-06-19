@@ -4,6 +4,7 @@ import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
 
 class BottomCheckoutButton extends StatelessWidget {
+  final bool isMapLoading;
   final bool isLoading;
   final Function(CartProvider, MyAuthProvider, double) onProcessOrder;
   final String Function(double) formatPrice;
@@ -11,6 +12,7 @@ class BottomCheckoutButton extends StatelessWidget {
   const BottomCheckoutButton({
     super.key,
     required this.isLoading,
+    this.isMapLoading = false,
     required this.onProcessOrder,
     required this.formatPrice,
   });
@@ -22,6 +24,7 @@ class BottomCheckoutButton extends StatelessWidget {
         final subtotal = cartProvider.totalPrice;
         final ongkir = 5000.0;
         final total = subtotal + ongkir;
+        final isDisabled = isLoading || isMapLoading;
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -37,7 +40,7 @@ class BottomCheckoutButton extends StatelessWidget {
           ),
           child: SafeArea(
             child: ElevatedButton(
-              onPressed: isLoading
+              onPressed: isDisabled
                   ? null
                   : () => onProcessOrder(cartProvider, authProvider, total),
               style: ElevatedButton.styleFrom(

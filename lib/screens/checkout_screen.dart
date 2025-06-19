@@ -1,5 +1,3 @@
-// screens/checkout_screen.dart
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart/managers/user_manager.dart';
@@ -10,7 +8,6 @@ import 'package:smart/services/order_service_all.dart';
 import 'package:smart/models/order.dart';
 import 'package:intl/intl.dart';
 import 'package:smart/widgets/maps/maps_picker.dart';
-import 'package:smart/widgets/order/address_section.dart';
 import 'package:smart/widgets/order/bottom_checkout_button.dart';
 import 'package:smart/widgets/order/payment_method_section.dart';
 import 'package:smart/widgets/order/product_list_section.dart';
@@ -18,7 +15,6 @@ import 'package:smart/widgets/order/note_section.dart';
 import 'package:smart/widgets/order/payment_summary_section.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
 
@@ -273,7 +269,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
 
-      if (result != null) {
+      if (result != null && mounted) {
         setState(() {
           _currentLatitude = result['latitude'];
           _currentLongitude = result['longitude'];
@@ -288,16 +284,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal membuka peta: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuka peta: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoadingMap = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingMap = false;
+        });
+      }
     }
   }
 
@@ -424,6 +424,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       bottomNavigationBar: BottomCheckoutButton(
         isLoading: _isLoading,
+        isMapLoading: _isLoadingMap,
         onProcessOrder: _processOrder,
         formatPrice: _formatPrice,
       ),
