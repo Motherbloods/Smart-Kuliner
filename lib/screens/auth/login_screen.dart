@@ -14,7 +14,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _emailOrPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
@@ -28,23 +28,50 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _emailOrPhoneController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  bool _isEmail(String input) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(input.trim());
+  }
+
+  bool _isPhoneNumber(String input) {
+    String cleaned = input.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    return RegExp(r'^(\+?62|0)8[0-9]{8,11}$').hasMatch(cleaned);
+  }
+
+  String? _validateEmailOrPhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Email atau nomor telepon tidak boleh kosong';
+    }
+
+    String cleanValue = value.trim();
+
+    if (cleanValue.contains('@')) {
+      if (!_isEmail(cleanValue)) {
+        return 'Format email tidak valid';
+      }
+    } else {
+      if (!_isPhoneNumber(cleanValue)) {
+        return 'Format nomor telepon tidak valid\nContoh: 08123456789 atau +628123456789';
+      }
+    }
+
+    return null;
+  }
+
   void _handleLogin() async {
-    // Clear any previous errors
     Provider.of<MyAuthProvider>(context, listen: false).clearError();
 
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<MyAuthProvider>(context, listen: false);
 
-      // Hide keyboard
       FocusScope.of(context).unfocus();
 
       final success = await authProvider.signIn(
-        _emailController.text.trim(),
+        _emailOrPhoneController.text.trim(),
         _passwordController.text,
       );
 
@@ -180,25 +207,37 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                    // Email Field
                     CustomTextField(
-                      label: 'Email',
-                      hint: 'Masukkan email Anda',
-                      controller: _emailController,
-                      prefixIcon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
+                      label: 'Email atau Nomor Telepon',
+                      hint: 'Masukkan email atau nomor telepon',
+                      controller: _emailOrPhoneController,
+                      prefixIcon: _emailOrPhoneController.text.contains('@')
+                          ? Icons.email_outlined
+                          : Icons.phone_outlined,
+                      keyboardType: _emailOrPhoneController.text.contains('@')
+                          ? TextInputType.emailAddress
+                          : TextInputType.text, // atau visiblePassword
+
                       enabled: !authProvider.isLoading,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Email tidak boleh kosong';
-                        }
-                        if (!RegExp(
-                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        ).hasMatch(value.trim())) {
-                          return 'Format email tidak valid';
-                        }
-                        return null;
+                      validator: _validateEmailOrPhone,
+                      onChanged: (value) {
+                        setState(() {});
                       },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Helper text
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(
+                        'Contoh: user@email.com atau 08123456789',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
                     ),
 
                     const SizedBox(height: 20),

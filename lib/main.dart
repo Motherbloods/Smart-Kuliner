@@ -7,6 +7,7 @@ import 'providers/cart_provider.dart';
 import 'screens/navbar/home_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'services/deeplink_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +43,34 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({Key? key}) : super(key: key);
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final DeeplinkService _deeplinkService = DeeplinkService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeDeeplink();
+    });
+  }
+
+  void _initializeDeeplink() {
+    _deeplinkService.initialize(context);
+    _deeplinkService.handleInitialLink(context);
+  }
+
+  @override
+  void dispose() {
+    _deeplinkService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

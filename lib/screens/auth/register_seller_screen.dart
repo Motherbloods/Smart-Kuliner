@@ -15,6 +15,7 @@ class RegisterScreenSeller extends StatefulWidget {
 class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _namaTokoController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
@@ -52,6 +53,7 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     _namaTokoController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
@@ -81,6 +83,7 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
         _passwordController.text,
         _nameController.text,
         _namaTokoController.text,
+        phoneNumber: _phoneController.text,
         sellerData: sellerData,
       );
 
@@ -226,6 +229,29 @@ class _RegisterScreenSellerState extends State<RegisterScreenSeller> {
                         }
                         if (value.length < 2) {
                           return 'Nama minimal 2 karakter';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Phone Number Field - Added after Name
+                    CustomTextField(
+                      label: 'Nomor Telepon',
+                      hint: 'Masukkan nomor telepon Anda',
+                      controller: _phoneController,
+                      prefixIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Nomor telepon tidak boleh kosong';
+                        }
+                        // Indonesian phone number validation
+                        if (!RegExp(r'^(\+62|62|0)[0-9]{8,13}$').hasMatch(
+                          value.replaceAll(RegExp(r'[\s\-\(\)]'), ''),
+                        )) {
+                          return 'Format nomor telepon tidak valid';
                         }
                         return null;
                       },

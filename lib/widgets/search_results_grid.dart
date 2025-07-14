@@ -357,7 +357,8 @@ class _SearchResultsGridState extends State<SearchResultsGrid> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => AllEducationScreen(),
+                        builder: (context) =>
+                            CookingDetailScreen(recipe: recipe),
                       ),
                     );
                   },

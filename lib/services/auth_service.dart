@@ -13,14 +13,22 @@ class AuthService {
   // Auth state stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  // Sign in with email and password
-  Future<UserCredential?> signInWithEmailAndPassword(
-    String email,
+  // Sign in with email or phone number
+  Future<UserCredential?> signInWithEmailOrPhone(
+    String emailOrPhone,
     String password,
   ) async {
     try {
+      String email = emailOrPhone.trim();
+
+      // Check if input is phone number (starts with numbers)
+      if (RegExp(r'^[0-9+]').hasMatch(emailOrPhone)) {
+        // It's a phone number, find the email associated with it
+        email = await _getEmailFromPhoneNumber(emailOrPhone.trim());
+      }
+
       UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: email,
         password: password,
       );
 
@@ -33,7 +41,51 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw 'Terjadi kesalahan yang tidak terduga';
+      throw e.toString();
+    }
+  }
+
+  // Get email from phone number
+  Future<String> _getEmailFromPhoneNumber(String phoneNumber) async {
+    try {
+      // Clean phone number (remove spaces, dashes, etc.)
+      String cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+      // If doesn't start with +, assume it's Indonesian number
+      if (!cleanPhone.startsWith('+')) {
+        if (cleanPhone.startsWith('0')) {
+          cleanPhone = '+62${cleanPhone.substring(1)}';
+        } else if (cleanPhone.startsWith('62')) {
+          cleanPhone = '+$cleanPhone';
+        } else {
+          cleanPhone = '+62$cleanPhone';
+        }
+      }
+
+      // Query Firestore to find user with this phone number
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('users')
+          .where('phoneNumber', isEqualTo: cleanPhone)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        // Also try with original phone number format
+        querySnapshot = await _firestore
+            .collection('users')
+            .where('phoneNumber', isEqualTo: phoneNumber)
+            .limit(1)
+            .get();
+      }
+
+      if (querySnapshot.docs.isEmpty) {
+        throw 'Nomor telepon tidak ditemukan';
+      }
+
+      final userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
+      return userData['email'] as String;
+    } catch (e) {
+      throw 'Nomor telepon tidak ditemukan';
     }
   }
 
@@ -42,7 +94,7 @@ class AuthService {
     String email,
     String password,
     String name, {
-    String? phoneNumber,
+    required String phoneNumber, // Now required
     DateTime? dateOfBirth,
     String? gender,
     String? address,
@@ -52,6 +104,14 @@ class AuthService {
     List<String>? favoriteCategories,
   }) async {
     try {
+      // Validate phone number is provided
+      if (phoneNumber.isEmpty) {
+        throw 'Nomor telepon wajib diisi';
+      }
+
+      // Check if phone number already exists
+      await _checkPhoneNumberExists(phoneNumber);
+
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
@@ -99,7 +159,7 @@ class AuthService {
     String name,
     String namaToko,
     Map<String, dynamic>? sellerData, {
-    String? phoneNumber,
+    required String phoneNumber, // Now required
     DateTime? dateOfBirth,
     String? gender,
     String? address,
@@ -108,6 +168,14 @@ class AuthService {
     String? postalCode,
   }) async {
     try {
+      // Validate phone number is provided
+      if (phoneNumber.isEmpty) {
+        throw 'Nomor telepon wajib diisi';
+      }
+
+      // Check if phone number already exists
+      await _checkPhoneNumberExists(phoneNumber);
+
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
@@ -147,6 +215,46 @@ class AuthService {
     }
   }
 
+  // Check if phone number already exists
+  Future<void> _checkPhoneNumberExists(String phoneNumber) async {
+    try {
+      String cleanPhone = _cleanPhoneNumber(phoneNumber);
+
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('users')
+          .where('phoneNumber', isEqualTo: cleanPhone)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        throw 'Nomor telepon sudah digunakan';
+      }
+    } catch (e) {
+      if (e.toString().contains('sudah digunakan')) {
+        throw e;
+      }
+      // Other errors, continue with registration
+    }
+  }
+
+  // Clean phone number format
+  String _cleanPhoneNumber(String phoneNumber) {
+    String cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+    // Normalize Indonesian phone numbers
+    if (!cleanPhone.startsWith('+')) {
+      if (cleanPhone.startsWith('0')) {
+        cleanPhone = '+62${cleanPhone.substring(1)}';
+      } else if (cleanPhone.startsWith('62')) {
+        cleanPhone = '+$cleanPhone';
+      } else {
+        cleanPhone = '+62$cleanPhone';
+      }
+    }
+
+    return cleanPhone;
+  }
+
   // Create user document in Firestore
   Future<void> _createUserDocument(
     User user,
@@ -171,7 +279,9 @@ class AuthService {
         createdAt: DateTime.now(),
         seller: isSeller,
         namaToko: isSeller ? namaToko : null,
-        phoneNumber: phoneNumber,
+        phoneNumber: phoneNumber != null
+            ? _cleanPhoneNumber(phoneNumber)
+            : null,
         dateOfBirth: dateOfBirth,
         gender: gender,
         address: address,
@@ -253,6 +363,11 @@ class AuthService {
     Map<String, dynamic> updates,
   ) async {
     try {
+      // If updating phone number, clean it first
+      if (updates.containsKey('phoneNumber')) {
+        updates['phoneNumber'] = _cleanPhoneNumber(updates['phoneNumber']);
+      }
+
       await _firestore.collection('users').doc(uid).update(updates);
       print('✅ Profile berhasil diupdate');
       return true;

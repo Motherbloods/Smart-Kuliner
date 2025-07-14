@@ -46,14 +46,14 @@ class MyAuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Sign in
-  Future<bool> signIn(String email, String password) async {
+  // Sign in with email or phone number
+  Future<bool> signIn(String emailOrPhone, String password) async {
     try {
       _setLoading(true);
       _setError(null);
 
       UserCredential? userCredential = await _authService
-          .signInWithEmailAndPassword(email, password);
+          .signInWithEmailOrPhone(emailOrPhone, password);
       if (userCredential != null && userCredential.user != null) {
         _currentUser = await _authService.getUserData(userCredential.user!.uid);
       } else {
@@ -74,7 +74,7 @@ class MyAuthProvider with ChangeNotifier {
     String email,
     String password,
     String name, {
-    String? phoneNumber,
+    required String phoneNumber, // Now required
     DateTime? dateOfBirth,
     String? gender,
     String? address,
@@ -133,6 +133,7 @@ class MyAuthProvider with ChangeNotifier {
     String password,
     String name,
     String namaToko, {
+    required String phoneNumber, // Now required
     Map<String, dynamic>? sellerData,
   }) async {
     _setLoading(true);
@@ -148,6 +149,7 @@ class MyAuthProvider with ChangeNotifier {
             name,
             namaToko,
             sellerData,
+            phoneNumber: phoneNumber,
           );
 
       if (userCredential != null && userCredential.user != null) {

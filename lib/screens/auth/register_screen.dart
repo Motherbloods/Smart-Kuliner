@@ -63,9 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _emailController.text,
         _passwordController.text,
         _nameController.text,
-        phoneNumber: _phoneController.text.isNotEmpty
-            ? _phoneController.text
-            : null,
+        phoneNumber: _phoneController.text, // Now required
         dateOfBirth: _selectedDateOfBirth,
         gender: _selectedGender,
         address: _addressController.text.isNotEmpty
@@ -215,24 +213,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Phone Field
+                    // Phone Field - Now Required
                     CustomTextField(
-                      label: 'Nomor Telepon',
-                      hint: 'Masukkan nomor telepon Anda',
+                      label: 'Nomor Telepon *',
+                      hint:
+                          'Masukkan nomor telepon Anda (contoh: 081234567890)',
                       controller: _phoneController,
                       prefixIcon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                       validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          if (value.length < 10) {
-                            return 'Nomor telepon minimal 10 digit';
-                          }
-                          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                            return 'Nomor telepon hanya boleh berisi angka';
-                          }
+                        if (value == null || value.isEmpty) {
+                          return 'Nomor telepon tidak boleh kosong';
+                        }
+                        if (value.length < 10) {
+                          return 'Nomor telepon minimal 10 digit';
+                        }
+                        if (value.length > 15) {
+                          return 'Nomor telepon maksimal 15 digit';
+                        }
+                        if (!RegExp(r'^[0-9+]+$').hasMatch(value)) {
+                          return 'Nomor telepon hanya boleh berisi angka dan tanda +';
                         }
                         return null;
                       },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Phone Number Help Text
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4DA8DA).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color(0xFF4DA8DA).withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: const Color(0xFF4DA8DA),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Nomor telepon diperlukan untuk login alternatif. Format: 081234567890 atau +6281234567890',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: const Color(0xFF4DA8DA),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 20),

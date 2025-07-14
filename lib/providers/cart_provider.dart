@@ -39,7 +39,7 @@ class CartProvider with ChangeNotifier {
     return _items.values.fold(0.0, (sum, item) => sum + item.totalPrice);
   }
 
-  void addItem({
+  bool addItem({
     required String productId,
     required String name,
     required double price,
@@ -48,36 +48,50 @@ class CartProvider with ChangeNotifier {
     required String nameToko,
     required int quantity,
   }) {
-    if (_items.containsKey(productId)) {
-      // Jika produk sudah ada, tambah quantity
-      _items.update(
-        productId,
-        (existingCartItem) => CartItem(
-          productId: existingCartItem.productId,
-          name: existingCartItem.name,
-          price: existingCartItem.price,
-          imageUrl: existingCartItem.imageUrl,
-          sellerId: existingCartItem.sellerId,
-          nameToko: existingCartItem.nameToko,
-          quantity: existingCartItem.quantity + quantity,
-        ),
-      );
-    } else {
-      // Jika produk belum ada, tambah item baru
-      _items.putIfAbsent(
-        productId,
-        () => CartItem(
-          productId: productId,
-          name: name,
-          price: price,
-          imageUrl: imageUrl,
-          sellerId: sellerId,
-          nameToko: nameToko,
-          quantity: quantity,
-        ),
-      );
+    try {
+      if (quantity <= 0) {
+        print('❌ Invalid quantity: $quantity');
+        return false;
+      }
+
+      if (_items.containsKey(productId)) {
+        // Jika produk sudah ada, tambah quantity
+        _items.update(
+          productId,
+          (existingCartItem) => CartItem(
+            productId: existingCartItem.productId,
+            name: existingCartItem.name,
+            price: existingCartItem.price,
+            imageUrl: existingCartItem.imageUrl,
+            sellerId: existingCartItem.sellerId,
+            nameToko: existingCartItem.nameToko,
+            quantity: existingCartItem.quantity + quantity,
+          ),
+        );
+        print('✅ Updated quantity for product: $name');
+      } else {
+        // Jika produk belum ada, tambah item baru
+        _items.putIfAbsent(
+          productId,
+          () => CartItem(
+            productId: productId,
+            name: name,
+            price: price,
+            imageUrl: imageUrl,
+            sellerId: sellerId,
+            nameToko: nameToko,
+            quantity: quantity,
+          ),
+        );
+        print('✅ Added new product to cart: $name');
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print('❌ Error adding item to cart: $e');
+      return false;
     }
-    notifyListeners();
   }
 
   void removeItem(String productId) {
