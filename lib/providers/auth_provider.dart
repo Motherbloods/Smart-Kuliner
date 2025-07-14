@@ -7,31 +7,58 @@ class MyAuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
 
   UserModel? _currentUser;
-  bool _isLoading = false;
+  bool _isLoading = true; // Start with true untuk initial load
+  bool _isInitialized = false; // Track if auth state is initialized
   String? _errorMessage;
 
   // Getters
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
   String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => _currentUser != null;
+  bool get isAuthenticated => _currentUser != null && _isInitialized;
+
+  // Add this getter for deeplink service
+  Stream<User?> get authStateChanges => _authService.authStateChanges;
 
   // Initialize auth state
   void initialize() {
+    print('🔄 AuthProvider: Initializing auth state...');
+
     _authService.authStateChanges.listen((User? user) async {
-      if (user != null) {
-        _currentUser = await _authService.getUserData(user.uid);
-      } else {
+      print('🔄 Auth state changed - User: ${user?.uid}');
+      _setLoading(true);
+
+      try {
+        if (user != null) {
+          print('🔄 Loading user data for: ${user.uid}');
+          _currentUser = await _authService.getUserData(user.uid);
+          print('✅ User data loaded: ${_currentUser?.name}');
+        } else {
+          print('🔄 User logged out');
+          _currentUser = null;
+        }
+      } catch (e) {
+        print('❌ Error loading user data: $e');
         _currentUser = null;
+        _setError(e.toString());
+      } finally {
+        _isInitialized = true;
+        _setLoading(false);
+        print(
+          '✅ Auth state initialization complete. Authenticated: ${isAuthenticated}',
+        );
       }
-      notifyListeners();
     });
   }
 
   // Set loading state
   void _setLoading(bool loading) {
-    _isLoading = loading;
-    notifyListeners();
+    if (_isLoading != loading) {
+      _isLoading = loading;
+      notifyListeners();
+      print('🔄 Loading state changed to: $loading');
+    }
   }
 
   // Set error message
@@ -74,7 +101,7 @@ class MyAuthProvider with ChangeNotifier {
     String email,
     String password,
     String name, {
-    required String phoneNumber, // Now required
+    required String phoneNumber,
     DateTime? dateOfBirth,
     String? gender,
     String? address,
@@ -133,7 +160,7 @@ class MyAuthProvider with ChangeNotifier {
     String password,
     String name,
     String namaToko, {
-    required String phoneNumber, // Now required
+    required String phoneNumber,
     Map<String, dynamic>? sellerData,
   }) async {
     _setLoading(true);
@@ -141,7 +168,6 @@ class MyAuthProvider with ChangeNotifier {
     print('🟢 MyAuthProvider: registerSeller() terpanggil');
 
     try {
-      // Registrasi seller via AuthService
       UserCredential? userCredential = await _authService
           .registerWithEmailAndPasswordSeller(
             email,
@@ -154,8 +180,6 @@ class MyAuthProvider with ChangeNotifier {
 
       if (userCredential != null && userCredential.user != null) {
         final uid = userCredential.user!.uid;
-
-        // Ambil data user setelah registrasi
         _currentUser = await _authService.getUserData(uid);
         print('✅ Registrasi seller berhasil');
         return true;
@@ -188,6 +212,7 @@ class MyAuthProvider with ChangeNotifier {
       print('[DEBUG] AuthService.signOut() completed');
 
       _currentUser = null;
+      _isInitialized = false; // Reset initialization state
       print('[DEBUG] Current user set to null');
     } catch (e, stackTrace) {
       print('[ERROR] signOut() failed: $e');

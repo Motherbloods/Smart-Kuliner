@@ -1,3 +1,4 @@
+// main.dart - Updated untuk SmartKuliner
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -52,18 +53,30 @@ class AuthWrapper extends StatefulWidget {
 
 class _AuthWrapperState extends State<AuthWrapper> {
   final DeeplinkService _deeplinkService = DeeplinkService();
+  bool _isDeeplinkInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeDeeplink();
-    });
+    _initializeDeeplink();
   }
 
-  void _initializeDeeplink() {
-    _deeplinkService.initialize(context);
-    _deeplinkService.handleInitialLink(context);
+  Future<void> _initializeDeeplink() async {
+    // Wait for first frame to ensure widget tree is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Wait a bit for auth state to settle
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      // Initialize deeplink service
+      _deeplinkService.initialize(context);
+
+      // Handle initial deeplink
+      await _deeplinkService.handleInitialLink(context);
+
+      setState(() {
+        _isDeeplinkInitialized = true;
+      });
+    });
   }
 
   @override
@@ -76,8 +89,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) {
     return Consumer<MyAuthProvider>(
       builder: (context, authProvider, child) {
-        // Show loading while checking auth state
-        if (authProvider.isLoading) {
+        // Show loading while checking auth state atau deeplink belum ready
+        if (authProvider.isLoading || !_isDeeplinkInitialized) {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(
